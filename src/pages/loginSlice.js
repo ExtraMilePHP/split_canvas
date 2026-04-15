@@ -52,7 +52,7 @@ export const loginUser = createAsyncThunk(
         console.log("working with demo now");
         function generateRandomUser() {
          // const randomString = 'demo' + Math.floor(Math.random() * 10000);
-         const randomString = 'demo12345';
+         const randomString = 'demol12';
           return {
             data: {
               data: {
@@ -90,7 +90,7 @@ export const loginUser = createAsyncThunk(
         }
 
         const headers = {
-          'client-secret': process.env.REACT_APP_FIREBASE_CLIENT_SECRET,
+          'client-secret': process.env.REACT_APP_CLIENT_SECRET,
           'Content-Type': 'application/json',
           'Idempotency-Key': uuid4(),
         };
