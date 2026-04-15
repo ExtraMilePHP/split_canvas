@@ -63,6 +63,7 @@ function USER({children }) {
     }
   }, [themeStatus, themeData, location.pathname]);
 
+  const isLoginPath = /^\/(?:login)?\/?$/.test(location.pathname);
 
   return (
     <>
@@ -73,7 +74,7 @@ function USER({children }) {
         </div>
        
       </header>
-      {children}
+      <main className={isLoginPath ? undefined : "font-anti-gravity"}>{children}</main>
     </>
   );
 }

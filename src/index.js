@@ -3,7 +3,7 @@ import React, {useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Login from './pages/login/login';
 import AdminRedirect from './adminRedirect/admin';
 import Admin from './admin/admin';
@@ -12,7 +12,6 @@ import Rules from './admin/pages/rules/rules';
 import { Provider } from 'react-redux';
 import { store } from './admin/store';
 import LoginPage from './admin/pages/login/login';
-import UserRules from './pages/rules/rules';
 import GetPairing from './pages/getPairing/GetPairing';
 import DrawPage from './pages/draw/DrawPage';
 import WhoMostLikely from './pages/whoMostLikely/WhoMostLikely';
@@ -67,7 +66,7 @@ function App() {
             <Routes>
               <Route index element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/rules" element={<UserRules/>} />
+              <Route path="/rules" element={<Navigate to="/get-pairing" replace />} />
               <Route path="/get-pairing" element={<GetPairing />} />
               <Route path="/draw" element={<DrawPage />} />
               <Route path="/gallery" element={<Gallery />} />

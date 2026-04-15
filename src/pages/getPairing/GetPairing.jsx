@@ -3,12 +3,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
+import { processQuestions } from "../../admin/questionSlice";
+import { initQuestions } from "../../functions/setUserQuestions";
 import { joinSplitCanvasPair } from "../../functions/splitCanvasApi";
+import IntroModal from "../introModal/introModal";
+import HowToPlayCard from "../rules/HowToPlayCard";
 import nextButtonAsset from "../../img/assets/next-button.png";
 import "../rules/howToPlayCard.css";
+import "../rules/rules.css";
 import "./getPairing.css";
 
 const STORAGE_KEY = "split_canvas_ctx_v1";
+const INTRO_SESSION_KEY = "split_canvas_intro_seen";
 
 function AvatarSilhouette() {
   return (
@@ -51,12 +57,46 @@ export default function GetPairing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [row, setRow] = useState(null);
+  const [showHowToPlayModal, setShowHowToPlayModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(false);
 
   const numSets = Math.max(1, parseSets(themeData).length);
 
   useEffect(() => {
-    dispatch(setBackButtonUrl("/rules"));
+    dispatch(setBackButtonUrl("/login?&save=true"));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!themeData || !user || !token) return;
+
+    dispatch(processQuestions())
+      .unwrap()
+      .then(() => {
+        return initQuestions({
+          userId: user.userId,
+          email: user.email,
+          fullName: user.name,
+          themeName: themeData.themename,
+          token,
+        });
+      })
+      .catch((err) => {
+        console.error("Error in process→init chain:", err);
+      });
+  }, [themeData, user, token, dispatch]);
+
+  useEffect(() => {
+    if (!themeData || !user || !token) return;
+    if (themeData.lifelines) return;
+    if (!themeData?.intro || !themeData?.introFile) return;
+    if (sessionStorage.getItem(INTRO_SESSION_KEY)) return;
+    setShowIntroModal(true);
+  }, [themeData, user, token]);
+
+  const dismissIntro = () => {
+    sessionStorage.setItem(INTRO_SESSION_KEY, "1");
+    setShowIntroModal(false);
+  };
 
   const runJoin = useCallback(async () => {
     if (!token || !user?.userId || !themeName) {
@@ -134,7 +174,19 @@ export default function GetPairing() {
 
   return (
     <div className="get-pairing-page">
-      <h1 className="get-pairing__title">Get Pairing</h1>
+      <header className="get-pairing__header">
+        <span className="get-pairing__header-spacer" aria-hidden="true" />
+        <h1 className="get-pairing__title">Get Pairing</h1>
+        <div className="get-pairing__header-actions">
+          <button
+            type="button"
+            className="get-pairing__howto-btn"
+            onClick={() => setShowHowToPlayModal(true)}
+          >
+            How to play
+          </button>
+        </div>
+      </header>
 
       {error && (
         <p className="get-pairing__error" style={{ textAlign: "center", color: "#b91c1c" }}>
@@ -188,6 +240,41 @@ export default function GetPairing() {
           />
         </button>
       </div>
+
+      {showHowToPlayModal && (
+        <div className="get-pairing-howto-modal" role="dialog" aria-modal="true">
+          <div
+            className="get-pairing-howto-modal__backdrop"
+            aria-hidden="true"
+            onClick={() => setShowHowToPlayModal(false)}
+          />
+          <div className="get-pairing-howto-modal__panel">
+            <button
+              type="button"
+              className="get-pairing-howto-modal__close"
+              onClick={() => setShowHowToPlayModal(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="user-rules-page get-pairing-howto-modal__inner">
+              <HowToPlayCard
+                rules={themeData?.rules || []}
+                onNext={() => setShowHowToPlayModal(false)}
+                nextAriaLabel="Close"
+                nextSrLabel="Close"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <IntroModal
+        isOpen={showIntroModal}
+        onClose={dismissIntro}
+        onComplete={dismissIntro}
+        introFile={themeData?.introFile}
+      />
     </div>
   );
 }

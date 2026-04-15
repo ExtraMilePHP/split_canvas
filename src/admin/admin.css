@@ -71,11 +71,10 @@
         background-size: cover;
         background-position: 100% 100%;
         background-repeat: no-repeat;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, sans-serif;
+        font-family: "FiraSans-Medium", sans-serif;
 }
 
-/* SweetAlert2 mounts on body; scope font to admin shell only */
+/* SweetAlert2 mounts on body; keep admin Swal aligned with app font */
 body.admin-app .swal2-popup,
 body.admin-app .swal2-title,
 body.admin-app .swal2-html-container,
@@ -83,6 +82,5 @@ body.admin-app .swal2-input,
 body.admin-app .swal2-textarea,
 body.admin-app .swal2-validation-message,
 body.admin-app .swal2-styled {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: "FiraSans-Medium", sans-serif;
 }

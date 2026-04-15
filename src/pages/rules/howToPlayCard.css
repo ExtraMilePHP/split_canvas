@@ -81,11 +81,13 @@
 
 .how-to-play__rule-title {
   color: black;
+  font-family: 'FiraSans-Medium', sans-serif;
 }
 
 .how-to-play__rule-body {
   font-weight: 500;
   color: #000000;
+  font-family: 'FiraSans-Medium', sans-serif;
 }
 
 .how-to-play__footer {

@@ -1,12 +1,3 @@
-body {
-  margin: 0;
-  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale; */
-}
-
 @font-face {
   font-family: 'FiraSans-Medium';
   /* src: url('./fonts/FiraSans-Medium.otf') format('opentype'); */
@@ -31,9 +22,14 @@ body {
   font-style: normal;
 }
 
-/* Opt-in Fira Sans on any subtree: className="font-fira" (body stays Anti Gravity). */
+/* Alias for explicit Fira (same as body default). */
 .font-fira {
   font-family: 'FiraSans-Medium', sans-serif;
+}
+
+/* Brand display font — use on user game shell (see dddUI/user.jsx), not on body/Swal. */
+.font-anti-gravity {
+  font-family: 'AntiGravity', sans-serif;
 }
 
 /* @import url('https://fonts.googleapis.com/css2?family=Mirza:wght@400;700&display=swap'); */
@@ -64,7 +60,18 @@ body {
   height: 100%;
   position: relative;
   background-attachment: fixed;
-  font-family: 'AntiGravity', sans-serif;
+  font-family: 'FiraSans-Medium', sans-serif;
+}
+
+/* SweetAlert2 mounts on body; keep dialogs on Fira everywhere. */
+.swal2-popup,
+.swal2-title,
+.swal2-html-container,
+.swal2-input,
+.swal2-textarea,
+.swal2-validation-message,
+.swal2-styled {
+  font-family: 'FiraSans-Medium', sans-serif;
 }
 
 body.common-bg {

@@ -58,7 +58,7 @@ export default function QuizUI() {
   });
 
   useEffect(() => {
-    dispatch(setBackButtonUrl("/rules"));
+    dispatch(setBackButtonUrl("/get-pairing"));
   }, []);
 
 function fixEncoding(value) {

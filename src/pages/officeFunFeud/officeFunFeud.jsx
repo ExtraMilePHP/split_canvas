@@ -90,7 +90,7 @@ export default function OfficeFunFeud() {
   const currentQ = questions[currentIndex];
 
   useEffect(() => {
-    dispatch(setBackButtonUrl("/rules"));
+    dispatch(setBackButtonUrl("/get-pairing"));
   }, [dispatch]);
 
   useEffect(() => {

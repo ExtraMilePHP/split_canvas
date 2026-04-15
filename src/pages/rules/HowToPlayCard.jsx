@@ -15,7 +15,13 @@ function splitRule(line) {
   };
 }
 
-export default function HowToPlayCard({ rules = [], onNext, disabled = false }) {
+export default function HowToPlayCard({
+  rules = [],
+  onNext,
+  disabled = false,
+  nextAriaLabel = "Next",
+  nextSrLabel = "Next",
+}) {
   const list = Array.isArray(rules) ? rules : [];
 
   return (
@@ -23,7 +29,7 @@ export default function HowToPlayCard({ rules = [], onNext, disabled = false }) 
       <h2 className="how-to-play__heading">How to play</h2>
       <div className="how-to-play">
         <div className="how-to-play__card">
-          <ul className="how-to-play__list font-fira">
+          <ul className="how-to-play__list">
             {list.map((rule, index) => {
               const { title, body } = splitRule(rule);
               return (
@@ -52,9 +58,9 @@ export default function HowToPlayCard({ rules = [], onNext, disabled = false }) 
             className="how-to-play__next"
             onClick={onNext}
             disabled={disabled}
-            aria-label="Next"
+            aria-label={nextAriaLabel}
           >
-            <span className="how-to-play__next-sr">Next</span>
+            <span className="how-to-play__next-sr">{nextSrLabel}</span>
             <img
               src={nextButtonAsset}
               alt=""

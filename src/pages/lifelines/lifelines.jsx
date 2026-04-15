@@ -17,7 +17,7 @@ function Lifelines() {
   const [canProceedToQuiz, setCanProceedToQuiz] = useState(false);
 
   useEffect(() => {
-    dispatch(setBackButtonUrl("/rules"));
+    dispatch(setBackButtonUrl("/get-pairing"));
     
     console.log(themeData);
     // Check if intro should be shown

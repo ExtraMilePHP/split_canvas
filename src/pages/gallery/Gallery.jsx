@@ -7,6 +7,7 @@ import {
   postSplitCanvasReaction,
 } from "../../functions/splitCanvasApi";
 import { sendReport } from "../../functions/sendReport";
+import Swal from "sweetalert2";
 import partImg from "../../img/assets/part-2.png";
 import "./gallery.css";
 
@@ -162,7 +163,11 @@ async function mergePairDownload(pair) {
   const lk = pair.left_s3_key;
   const rk = pair.right_s3_key;
   if (!lk || !rk) {
-    alert("Both sides need to be submitted before download.");
+    Swal.fire(
+      "Not ready yet",
+      "Both sides need to be submitted before download.",
+      "warning"
+    );
     return;
   }
   const load = (key) =>
@@ -192,7 +197,11 @@ async function mergePairDownload(pair) {
       URL.revokeObjectURL(a.href);
     }, "image/png");
   } catch {
-    alert("Could not merge images (CORS or network).");
+    Swal.fire(
+      "Download failed",
+      "Could not merge images (CORS or network).",
+      "error"
+    );
   }
 }
 
@@ -207,10 +216,16 @@ function GalleryCard({ pair, onReact, reactBusy }) {
   return (
     <article className="gallery-card">
       <div className="gallery-card__frame">
-        <span className="gallery-card__name gallery-card__name--left">
+        <span
+          className="gallery-card__name gallery-card__name--left"
+          title={leftName}
+        >
           {leftName}
         </span>
-        <span className="gallery-card__name gallery-card__name--right">
+        <span
+          className="gallery-card__name gallery-card__name--right"
+          title={rightName}
+        >
           {rightName}
         </span>
         <div className="gallery-card__split">

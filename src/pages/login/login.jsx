@@ -81,7 +81,7 @@ useEffect(() => {
         {user && status === "succeeded" && (
           <div>
             <Link
-              to="/rules"
+              to="/get-pairing"
               className="begin-play-btn"
               aria-label="Begin play"
               title="Begin play"

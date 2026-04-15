@@ -52,7 +52,7 @@ export const loginUser = createAsyncThunk(
         console.log("working with demo now");
         function generateRandomUser() {
          // const randomString = 'demo' + Math.floor(Math.random() * 10000);
-         const randomString = 'demol12';
+         const randomString = 'demoblsdfsdddfddd';
           return {
             data: {
               data: {
