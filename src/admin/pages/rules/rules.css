@@ -1,0 +1,284 @@
+.rule-page {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  padding-top: 100px;
+
+  /* ensure cells are separate and spaced */
+  border-collapse: separate;
+  border-spacing: 50px 0;  /* 50px column gap, 0 row gap */
+}
+
+/* Remove any margin-based gap you tried before */
+.custom-rules-container,
+.custom-toogle-container {
+  display: table-cell;
+  vertical-align: top;
+  width: 35%;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: white;
+}
+  .custom-rules-title {
+    margin-top: 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: normal;
+    margin-top: 25px;
+  }
+  
+  .rules-list {
+    margin-bottom: 20px;
+  }
+  
+  .rule-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .rule-number {
+    margin-right: 10px;
+  }
+  
+  .rule-input {
+    padding: 8px;
+    background: #f3f3f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+    width: 90%;
+    color: #646464;
+    font-size: 14px;
+    border: none;
+  }
+  
+  .remove-button {
+    background: none;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+    padding: 5px;
+  }
+  
+  .remove-button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .add-rule-container {
+    display: flex;
+    margin-top: 20px;
+  }
+  
+  .new-rule-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
+  
+  .add-button {
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-btn{
+    color: #000000;
+    border: 1px solid #000000;
+    padding: 5px 10px;
+    /* font-weight: bolder; */
+    background: transparent;
+    cursor: pointer;
+  }
+  
+  .add-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  .rule-row{
+    margin: 10px 0px;
+    display: flex;
+    align-items: center;
+  }
+
+  .rules-button-container{
+    width:100%;
+    padding-top:15px;
+  }
+  .remove-btn{
+    color: #000000;
+    border: 1px solid #000000;
+    padding: 3px 7px;
+    cursor: pointer;
+  }
+
+  .custom-toogle-container .toggle-group{
+    margin-top:15px;
+  }
+
+  .next-button-container{
+    text-align: center;
+  }
+
+  .save-button-container{
+    text-align: center;
+  }
+  .next-button-container button{
+    color: #d83307;
+    border: 1px solid #d83307;
+    padding: 5px 10px;
+    font-weight: bolder;
+    background: transparent;
+    cursor: pointer;
+    font-size: 19px;
+    margin: 10px auto;
+  }
+
+  /* Page Settings form in Rules component */
+.custom-toogle-container .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.custom-toogle-container .form-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.custom-toogle-container .form-group input[type="text"],
+.custom-toogle-container .form-group input[type="color"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.custom-toogle-container .form-group input[type="text"]:focus,
+.custom-toogle-container .form-group input[type="color"]:focus {
+  outline: none;
+  border-color: #888;
+}
+
+/* Adjust the section title spacing */
+.custom-toogle-container > .custom-rules-title {
+  margin-bottom: 1rem;
+}
+
+/* Ensure the two panels stay aligned */
+.rule-page {
+  align-items: flex-start;
+}
+
+/* Optional: tweak button container below */
+.save-button-container button {
+  margin-top: 20px;
+}
+
+.input-color{
+  height: 50px;
+  width: 100px !important;
+}
+
+.open-color-settings{
+    color: #d83307;
+    border: 1px solid #d83307;
+    padding: 5px 10px;
+    font-weight: bolder;
+    background: transparent;
+    cursor: pointer;
+    font-size: 19px;
+    /* margin: 10px auto; */
+}
+
+
+.rules-page-new{
+    width: 65%;
+    margin:0 auto;
+    padding-top:60px;
+}
+
+.blue-tabs-container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 90%;
+    margin: 0 auto;
+}
+
+.blue-tabs{
+    background:#d1d5dc;
+    height: 8px;
+    width: 30%;
+    gap: 10px;
+    border-radius: 5px;
+}
+.blue-tabs-active{
+    background:#155dfc;
+}
+.admin-tabs-holder{
+    width: 80%;
+    margin: 0 auto;
+}
+
+.admin-tab-container{
+    background: white;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+
+  .form-group-v1 {
+      margin-top:15px;
+    }
+  
+  .form-group-v1 label{
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #444;
+      font-size: 15px;
+  }
+
+  .form-group-v1 input[type="text"],
+  .form-group-v1 input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    background: #f3f3f5;
+    color: #646464;
+    border:none;
+  }
+  
+  .form-group-v1 input[type="text"]:focus,
+  .form-group-v1 input[type="number"]:focus {
+    outline: none;
+    border-color: #666;
+  }
+
+  .rules-action-holder{
+    text-align: right;
+  }
+  .save-and-continue{
+    background: black;
+    color: white;
+    padding: 7px 10px;
+    border-radius: 5px;
+    margin:20px 0px;
+    cursor: pointer;
+  }

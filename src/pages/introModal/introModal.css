@@ -1,0 +1,270 @@
+/* introModal.css */
+
+.intro-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+.intro-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.intro-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.intro-modal-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.intro-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.intro-modal-close:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.intro-modal-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Image Styles */
+.intro-image-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.intro-image {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Video Styles */
+.intro-video-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro-video {
+  width: 100%;
+  max-height: 500px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.intro-video-notice {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  color: #856404;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* PDF Styles */
+.intro-pdf-container {
+  width: 100%;
+  height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.intro-pdf-viewer {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+/* PDF Fallback Styles */
+.pdf-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  width: 100%;
+  max-width: 400px;
+}
+
+.pdf-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.pdf-fallback h4 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 18px;
+}
+
+.pdf-fallback p {
+  margin: 0 0 20px 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.pdf-download-btn {
+  background-color: #dc3545;
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  display: inline-block;
+}
+
+.pdf-download-btn:hover {
+  background-color: #c82333;
+  color: white;
+  text-decoration: none;
+}
+
+/* Footer Styles */
+.intro-modal-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: center;
+}
+
+.intro-next-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.intro-next-button:hover:not(.intro-disabled) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.intro-next-button.intro-disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.intro-next-button:disabled {
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .intro-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .intro-modal-header {
+    padding: 15px;
+  }
+  
+  .intro-modal-header h3 {
+    font-size: 20px;
+  }
+  
+  .intro-modal-content {
+    padding: 15px;
+  }
+  
+  .intro-image {
+    max-height: 300px;
+  }
+  
+  .intro-video {
+    max-height: 300px;
+  }
+  
+  .intro-pdf-container {
+    height: 400px;
+  }
+  
+  .intro-modal-footer {
+    padding: 15px;
+  }
+  
+  .intro-next-button {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-width: 120px;
+  }
+
+  .pdf-fallback {
+    padding: 30px 20px;
+  }
+  
+  .pdf-icon {
+    font-size: 48px;
+  }
+}

@@ -1,0 +1,89 @@
+body {
+  margin: 0;
+  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale; */
+}
+
+@font-face {
+  font-family: 'FiraSans-Medium';
+  /* src: url('./fonts/FiraSans-Medium.otf') format('opentype'); */
+    src: url('./fonts/FiraSans-Medium.woff2') format('woff2'),
+       url('./fonts/FiraSans-Medium.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'arial';
+  /* src: url('./fonts/FiraSans-Medium.otf') format('opentype'); */
+    src: url('./fonts/arial.ttf') format('ttf');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AntiGravity';
+  src: url('./fonts/anti-gravity.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Opt-in Fira Sans on any subtree: className="font-fira" (body stays Anti Gravity). */
+.font-fira {
+  font-family: 'FiraSans-Medium', sans-serif;
+}
+
+/* @import url('https://fonts.googleapis.com/css2?family=Mirza:wght@400;700&display=swap'); */
+
+
+:root {
+  --text-color: #000000;
+  --ui-color-1: #000000;
+  --ui-color-2: #fa6321;
+  --option-color: #fb9905;
+  --option-text-color: #ffffff;
+}
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+
+}
+
+
+/* Default body style */
+body {
+  margin: 0;
+  padding: 0;
+  background: none;
+  background-size: cover;
+  width: 100%;
+  background-repeat: no-repeat;
+  height: 100%;
+  position: relative;
+  background-attachment: fixed;
+  font-family: 'AntiGravity', sans-serif;
+}
+
+body.common-bg {
+  background: url("img/background.png");
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+body.wml-game {
+  min-height: 100vh;
+}
+
+/* Media queries for mobile-specific backgrounds */
+@media (max-width: 768px) {
+  body.common-bg {
+    background: url("img/background.png");
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-attachment: fixed;
+  }
+}

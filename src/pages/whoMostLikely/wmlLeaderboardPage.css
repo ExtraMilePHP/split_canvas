@@ -1,0 +1,141 @@
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap");
+
+.wml-lb-page {
+  min-height: calc(100vh - 90px);
+  min-height: calc(100dvh - 90px);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem 1rem 2rem;
+  padding-top: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  font-family: "Fredoka", system-ui, "Segoe UI", sans-serif;
+}
+
+@media (max-width: 768px) {
+  .wml-lb-page {
+    padding-top: 56px;
+  }
+}
+
+.wml-lb-card {
+  position: relative;
+  width: min(100%, 400px);
+  margin-top: 0.5rem;
+  padding: 2.5rem 1.25rem 1.5rem;
+  padding-top: 3rem;
+  background: #fffdd0;
+  border-radius: 0 0 20px 20px;
+  box-shadow:
+    0 4px 0 #e6a800,
+    0 12px 32px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+.wml-lb-trophy {
+  position: absolute;
+  top: -4px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  user-select: none;
+  pointer-events: none;
+}
+
+.wml-lb-trophy--left {
+  left: 12px;
+}
+
+.wml-lb-trophy--right {
+  right: 12px;
+}
+
+.wml-lb-banner {
+  position: absolute;
+  left: 50%;
+  top: -22px;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  line-height: 0;
+}
+
+.wml-lb-banner__img {
+  display: block;
+  max-width: min(260px, 78vw);
+  width: auto;
+  height: auto;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
+}
+
+@media (max-width: 768px) {
+  .wml-lb-banner__img {
+    max-width: min(220px, 72vw);
+  }
+
+  .wml-lb-trophy {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+.wml-lb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wml-lb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0.65rem 1rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+  font-size: 1rem;
+  color: #8a2be2;
+}
+
+.wml-lb-rank {
+  font-weight: 700;
+  min-width: 1.75rem;
+  color: #8a2be2;
+}
+
+.wml-lb-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wml-lb-pts {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wml-lb-status,
+.wml-lb-empty {
+  margin: 0;
+  text-align: center;
+  color: #5b21b6;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.wml-lb-empty {
+  padding: 2rem 1rem;
+}

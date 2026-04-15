@@ -1,0 +1,88 @@
+.header-admin{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 65px;
+    padding: 0px 20px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px, rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+    background: white;
+}
+.brand-logo-and-game-holder{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 18px;
+    font-weight: 400;
+}
+.header-admin .brand-logo{
+    width:180px;
+}
+.brand-logo-holder{
+    border-right: 2px solid black;
+    padding-right: 10px;
+}
+.user{
+    width: 30px;
+    height: 30px;
+    border: 0.5px solid #00000026;
+    border-radius: 50%;
+    padding: 3px;
+    background: #f6f6f6;
+}
+.user img{
+    width: 100%;
+}
+.back-button-holder{
+    position: absolute;
+    top: 65px;
+    width: 53%;
+    left: 0;
+    right: 0;
+    /* height: 30px; */
+    margin: 0 auto;
+}
+.back-button{
+    color: black;
+    /* border: 1px solid #d83307; */
+    padding: 5px 10px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 10px auto;
+    position: absolute;
+    top: 8px;
+    border: none !important;
+}
+
+.code{
+    font-size: 13px;
+    padding: 0.2rem 0.4rem;
+    color: #f74b5c;
+    border-radius: 0.25rem;
+    /* background-color: #f2f3f5; */
+    margin-top: 5px;
+    text-align: left;
+}
+
+.admin-background{
+        /* background-image: url("../background-web.jpg"); */
+        background:#f4f5fa;
+        min-height: 100vh;
+        background-size: cover;
+        background-position: 100% 100%;
+        background-repeat: no-repeat;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+}
+
+/* SweetAlert2 mounts on body; scope font to admin shell only */
+body.admin-app .swal2-popup,
+body.admin-app .swal2-title,
+body.admin-app .swal2-html-container,
+body.admin-app .swal2-input,
+body.admin-app .swal2-textarea,
+body.admin-app .swal2-validation-message,
+body.admin-app .swal2-styled {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, sans-serif;
+}

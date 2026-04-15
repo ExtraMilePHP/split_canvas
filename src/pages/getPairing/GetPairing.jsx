@@ -1,0 +1,193 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { setBackButtonUrl } from "../uiSlice";
+import { selectAdminToken } from "../../admin/sessionSlice";
+import { joinSplitCanvasPair } from "../../functions/splitCanvasApi";
+import nextButtonAsset from "../../img/assets/next-button.png";
+import "../rules/howToPlayCard.css";
+import "./getPairing.css";
+
+const STORAGE_KEY = "split_canvas_ctx_v1";
+
+function AvatarSilhouette() {
+  return (
+    <svg
+      className="get-pairing__avatar-svg"
+      viewBox="0 0 120 140"
+      aria-hidden="true"
+    >
+      <ellipse cx="60" cy="38" rx="28" ry="30" fill="currentColor" />
+      <path
+        fill="currentColor"
+        d="M20 125c0-28 18-48 40-48s40 20 40 48v15H20v-15z"
+      />
+    </svg>
+  );
+}
+
+function parseSets(themeData) {
+  let sets = themeData?.splitImageSets;
+  if (sets == null) return [];
+  if (typeof sets === "string") {
+    try {
+      sets = JSON.parse(sets);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(sets) ? sets : [];
+}
+
+export default function GetPairing() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const token = useSelector(selectAdminToken);
+  const { user } = useSelector((s) => s.auth);
+  const themeData = useSelector((s) => s.theme.data);
+  const themeName =
+    themeData?.themename ?? themeData?.themeName ?? themeData?.themename;
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [row, setRow] = useState(null);
+
+  const numSets = Math.max(1, parseSets(themeData).length);
+
+  useEffect(() => {
+    dispatch(setBackButtonUrl("/rules"));
+  }, [dispatch]);
+
+  const runJoin = useCallback(async () => {
+    if (!token || !user?.userId || !themeName) {
+      setLoading(false);
+      setError("Missing session or theme. Try logging in again.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await joinSplitCanvasPair(token, {
+        userId: String(user.userId),
+        userName: String(user.name || user.email || "Player"),
+        themeName: String(themeName),
+        numSets,
+      });
+      if (!res.success) throw new Error(res.error || "Join failed");
+      const ctx = {
+        pairId: res.pairId,
+        side: res.side,
+        setIndex: res.setIndex,
+        themeName: String(themeName),
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ctx));
+      const goGallery =
+        res.redirectToGallery ||
+        (res.side === "left" && res.leftSubmitted) ||
+        (res.side === "right" && res.rightSubmitted);
+      if (goGallery) {
+        navigate("/gallery");
+        return;
+      }
+      setRow({
+        pairId: res.pairId,
+        side: res.side,
+        setIndex: res.setIndex,
+        partnerName: res.partnerName,
+        leftSubmitted: res.leftSubmitted,
+        rightSubmitted: res.rightSubmitted,
+        myName: String(user.name || user.email || "You"),
+      });
+    } catch (e) {
+      setError(e.message || "Pairing failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, user, themeName, numSets, navigate]);
+
+  useEffect(() => {
+    runJoin();
+  }, [runJoin]);
+
+  const goDraw = async () => {
+    let raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      await runJoin();
+      raw = sessionStorage.getItem(STORAGE_KEY);
+    }
+    if (raw) {
+      navigate("/draw", { state: JSON.parse(raw) });
+    }
+  };
+
+  const leftLabel = () => {
+    if (!row) return "…";
+    if (row.side === "left") return row.myName;
+    return row.partnerName || "Partner";
+  };
+
+  const rightLabel = () => {
+    if (!row) return "…";
+    if (row.side === "left") return row.partnerName || "Pairing…";
+    return row.myName;
+  };
+
+  return (
+    <div className="get-pairing-page">
+      <h1 className="get-pairing__title">Get Pairing</h1>
+
+      {error && (
+        <p className="get-pairing__error" style={{ textAlign: "center", color: "#b91c1c" }}>
+          {error}{" "}
+          <button type="button" className="get-pairing__retry" onClick={runJoin}>
+            Retry
+          </button>
+        </p>
+      )}
+
+      <div className="get-pairing__cards get-pairing__cards--pair-row">
+        <div className="get-pairing__card">
+          <div className="get-pairing__avatar-wrap">
+            <AvatarSilhouette />
+          </div>
+          <span className="get-pairing__label get-pairing__label--small">
+            {loading ? "…" : leftLabel()}
+          </span>
+          <span className="get-pairing__sublabel">Left canvas</span>
+        </div>
+        <div className="get-pairing__card">
+          <div className="get-pairing__avatar-wrap">
+            <AvatarSilhouette />
+          </div>
+          <span className="get-pairing__label get-pairing__label--small">
+            {loading ? "…" : rightLabel()}
+          </span>
+          <span className="get-pairing__sublabel">
+            {row?.side === "left" && !row?.partnerName
+              ? "Waiting for partner"
+              : "Right canvas"}
+          </span>
+        </div>
+      </div>
+
+      <div className="get-pairing__footer">
+        <button
+          type="button"
+          className="how-to-play__next"
+          onClick={goDraw}
+          disabled={loading || !!error || !row}
+          aria-label="Next"
+        >
+          <span className="how-to-play__next-sr">Next</span>
+          <img
+            src={nextButtonAsset}
+            alt=""
+            className="how-to-play__next-img"
+            width={220}
+            height={56}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}

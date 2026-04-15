@@ -1,0 +1,11 @@
+/* Player rules page shell — full-page body background comes from theme (USER dddUI) like other player routes */
+
+.user-rules-page {
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+
+}

@@ -1,0 +1,162 @@
+.ai-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Modal container */
+.ai-modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+
+/* Small compact mode (initial form) */
+.ai-modal.compact {
+  width: 90%;
+  max-width: 500px;
+}
+
+/* Wide mode (preview table) */
+.ai-modal.wide {
+  width: 95%;
+  max-width: 1000px;
+}
+
+.ai-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.ai-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.ai-form label {
+  display: block;
+  margin: 8px 0 4px;
+  font-weight: 500;
+}
+
+.ai-input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.generate-button-holder{
+  text-align: center;
+}
+
+.ai-generate-btn, .ai-save-btn, .ai-regenerate-btn {
+  background: #d83307;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  margin-top: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  margin: 0 auto;
+}
+
+.ai-generate-btn:hover, .ai-save-btn:hover, .ai-regenerate-btn:hover {
+  opacity: 0.9;
+}
+
+.ai-loading {
+  text-align: center;
+}
+
+.ai-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ccc;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-preview {
+  margin-top: 15px;
+}
+
+.ai-table {
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.ai-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ai-table th, .ai-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.ai-table th {
+  background: #f9f9f9;
+  font-weight: bold;
+}
+
+.ai-actions {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.ai-regenerate-btn {
+  background: #d83307;
+  margin-right: 8px;
+}
+
+.ai-save-btn {
+    background: transparent;
+    border: 1px solid #d83307;
+    color: #d83307;
+    font-weight: bolder;
+}
+.ai-form{
+    width: 90%;
+    margin: 0 auto;
+}
+
+.swal2-container {
+  z-index: 9999 !important;
+}
+

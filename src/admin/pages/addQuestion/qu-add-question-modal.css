@@ -1,0 +1,229 @@
+/* qu-add-question-modal.css */
+.qu-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+.qu-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.qu-modal h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    /* color: #d83307; */
+    font-size: 16px;
+    font-weight: lighter;
+}
+.qu-form-group {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+}
+.qu-form-group-v1{
+    display: flex;
+    flex-direction: column;
+    flex-flow: wrap;
+}
+
+.qu-form-group label {
+    /* font-weight: 600; */
+    margin-bottom: 0.5rem;
+    font-size: 13px;
+}
+.qu-form-group input[type="text"],
+.qu-form-group select {
+    padding: 0.5rem;
+    border: 2px solid #ccc;
+    border-radius: 7px;
+    font-size: 13px;
+    /* margin: 5px 0px; */
+    flex: 1 1;
+    background: #f3f3f5;
+    border: none;
+}
+.qu-options-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.qu-options-count span {
+  margin-right: 0.5rem;
+  font-weight: 600;
+}
+.qu-count-btn {
+  margin-right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid black;
+  background: #fff;
+  color: black;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.qu-form-group input[type="radio"] {
+  accent-color: black; /* blue */
+}
+.qu-count-btn.qu-active {
+    background: black;
+    color: #fff;
+}
+.qu-hint-btn {
+    padding: 0.5rem 1rem;
+    /* border: 1px solid #d83307; */
+    border-bottom: 1px dotted #999;
+    background: #fff;
+    color: #155dfc;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 3px dotted #bbb;
+}
+.qu-file-name {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+.qu-file-input {
+  display: none;
+}
+.qu-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.qu-cancel-btn,
+.qu-save-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+.qu-cancel-btn {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+}
+.qu-save-btn {
+    background: black;
+    color: #fff;
+    border-radius: 7px;
+}
+.qu-upload-container{
+    display: flex;
+    gap: 20px;
+    position: relative;
+}
+.qu-upload-container button{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap:15px;
+}
+.qu-preview-container{
+    width: 40%;
+    min-height: 50px;
+}
+.qu-preview-container img{
+  height:100px;
+}
+.qu-preview-container video{
+  height: 90px;
+  margin: 0px;
+}
+
+.option-number{
+    font-size: 16px;
+    background: #d83307;
+    padding: 5px;
+    color: white;
+    width: 21px;
+    height: 21px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.input-option-holder{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0px;
+    width: 50%;
+    position: relative;
+}
+.input-lable{
+    text-align: left;
+    width: 100%;
+    font-size: 13px;
+    margin-top: 5px;
+}
+.qu-preview-audio{
+     width: 227px;
+}
+
+.qu-form-group-v1 input{
+    width: 80%;
+    height: 24px;
+    margin: 5px 0px;
+    background: #f3f3f5;
+    border: none;
+    padding: 5px 10px;
+}
+
+.qu-form-group-v1 .input-label{
+    font-size: 13px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+.remove-button-container{
+    width: 100%;
+    text-align: right;
+}
+.remove-image-button{
+    width: max-content !important;
+    background: black;
+    color: white;
+    padding: 0px 4px;
+    position: absolute;
+    left: 3px;
+    top: 25px;
+    border-radius: 15px;
+}
+
+.input-option-holder img{
+    height: 55px;
+    margin-left: 26px;
+}
+
+
+@media (max-width: 480px) {
+  .qu-modal {
+    max-width: 95%;
+  }
+  .qu-actions {
+    flex-direction: column;
+  }
+  .qu-cancel-btn,
+  .qu-save-btn {
+    width: 100%;
+  }
+}
