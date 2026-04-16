@@ -20,6 +20,7 @@
 .brand-logo-holder{
     border-right: 2px solid black;
     padding-right: 10px;
+    cursor: pointer;
 }
 .user{
     width: 30px;

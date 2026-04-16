@@ -10,14 +10,8 @@ import { updateThemeData } from "../../functions/updateThemeData";
 const MIN_TIMER_SECONDS = 10;
 const MAX_TIMER_SECONDS = 10 * 60;
 
-function clampTimer(totalSec) {
-  return Math.min(MAX_TIMER_SECONDS, Math.max(MIN_TIMER_SECONDS, totalSec));
-}
-
 function formatTimer(totalSec) {
-  const safe = clampTimer(
-    Number.isFinite(totalSec) ? totalSec : MIN_TIMER_SECONDS
-  );
+  const safe = Number.isFinite(totalSec) ? Math.max(0, totalSec) : MIN_TIMER_SECONDS;
   const m = Math.floor(safe / 60);
   const s = safe % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -44,7 +38,7 @@ const QuizSettingsPage = () => {
   useEffect(() => {
     if (!themeData) return;
     const t = parseInt(themeData.wmlQuestionTimerSeconds, 10);
-    const total = Number.isNaN(t) ? MIN_TIMER_SECONDS : clampTimer(t);
+    const total = Number.isNaN(t) ? MIN_TIMER_SECONDS : t;
     setTimerText(formatTimer(total));
   }, [themeData, currentTheme]);
 

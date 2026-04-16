@@ -178,6 +178,33 @@ async function mergePairDownload(pair) {
       i.onerror = () => reject(new Error("image load"));
       i.src = s3u(key);
     });
+
+  const triggerDirectDownload = (url, filename) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const toBlob = (canvas) =>
+    new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("blob unavailable"));
+            return;
+          }
+          resolve(blob);
+        }, "image/png");
+      } catch (e) {
+        reject(e);
+      }
+    });
+
   try {
     const [l, r] = await Promise.all([load(lk), load(rk)]);
     const w = l.naturalWidth + r.naturalWidth;
@@ -188,19 +215,21 @@ async function mergePairDownload(pair) {
     const ctx = c.getContext("2d");
     ctx.drawImage(l, 0, 0);
     ctx.drawImage(r, l.naturalWidth, 0);
-    c.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `split-canvas-${pair.id}.png`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }, "image/png");
+    const blob = await toBlob(c);
+    const objectUrl = URL.createObjectURL(blob);
+    triggerDirectDownload(objectUrl, `split-canvas-${pair.id}.png`);
+    URL.revokeObjectURL(objectUrl);
   } catch {
+    // Frontend-only fallback when canvas export is blocked by CORS.
+    triggerDirectDownload(s3u(lk), `split-canvas-${pair.id}-left.png`);
+    window.setTimeout(() => {
+      triggerDirectDownload(s3u(rk), `split-canvas-${pair.id}-right.png`);
+    }, 120);
+
     Swal.fire(
-      "Download failed",
-      "Could not merge images (CORS or network).",
-      "error"
+      "Merged download blocked",
+      "CORS blocked merged export. Downloaded/opened left and right images separately.",
+      "info"
     );
   }
 }

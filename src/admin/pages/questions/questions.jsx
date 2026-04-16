@@ -11,6 +11,8 @@ import "./QuestionsTable.css";
 
 const MAX_SETS = 10;
 const REQUIRED_IMAGE_SIZE = 450;
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"];
+const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png"];
 
 function s3Url(filename) {
   if (!filename) return "";
@@ -103,6 +105,19 @@ const QuestionsTable = () => {
       Swal.fire("Select files", "Choose both a left and a right image.", "warning");
       return;
     }
+    const leftType = (leftFile.type || "").toLowerCase();
+    const rightType = (rightFile.type || "").toLowerCase();
+    if (
+      !ALLOWED_FILE_TYPES.includes(leftType) ||
+      !ALLOWED_FILE_TYPES.includes(rightType)
+    ) {
+      Swal.fire(
+        "Invalid file type",
+        "Only JPG/JPEG and PNG files are allowed for both left and right images.",
+        "warning"
+      );
+      return;
+    }
     try {
       setSaving(true);
       const [leftSize, rightSize] = await Promise.all([
@@ -188,7 +203,7 @@ const QuestionsTable = () => {
             <p className="split-sets-helper">
               Up to {MAX_SETS} sets (left + right image per set). Same theme for
               all. Each image must be exactly {REQUIRED_IMAGE_SIZE}x
-              {REQUIRED_IMAGE_SIZE}px.
+              {REQUIRED_IMAGE_SIZE}px. Allowed files: JPG, JPEG, PNG.
             </p>
 
             <div className="split-sets-add">
@@ -198,7 +213,7 @@ const QuestionsTable = () => {
                   id="split-left-file"
                   className="split-sets-file-input"
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  accept={ALLOWED_FILE_EXTENSIONS.join(",")}
                   onChange={(e) => setLeftFile(e.target.files?.[0] || null)}
                 />
               </div>
@@ -208,7 +223,7 @@ const QuestionsTable = () => {
                   id="split-right-file"
                   className="split-sets-file-input"
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  accept={ALLOWED_FILE_EXTENSIONS.join(",")}
                   onChange={(e) => setRightFile(e.target.files?.[0] || null)}
                 />
               </div>
