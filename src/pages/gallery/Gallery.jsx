@@ -17,6 +17,12 @@ function s3u(key) {
   return base.endsWith("/") ? `${base}${key}` : `${base}/${key}`;
 }
 
+function withCacheBust(url, token) {
+  if (!url) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}cb=${encodeURIComponent(String(token))}`;
+}
+
 function DownloadIcon() {
   return (
     <svg
@@ -176,7 +182,7 @@ async function mergePairDownload(pair) {
       i.crossOrigin = "anonymous";
       i.onload = () => resolve(i);
       i.onerror = () => reject(new Error("image load"));
-      i.src = s3u(key);
+      i.src = withCacheBust(s3u(key), `${pair.id}-${key}`);
     });
 
   const triggerDirectDownload = (url, filename) => {
@@ -221,9 +227,15 @@ async function mergePairDownload(pair) {
     URL.revokeObjectURL(objectUrl);
   } catch {
     // Frontend-only fallback when canvas export is blocked by CORS.
-    triggerDirectDownload(s3u(lk), `split-canvas-${pair.id}-left.png`);
+    triggerDirectDownload(
+      withCacheBust(s3u(lk), `${pair.id}-left`),
+      `split-canvas-${pair.id}-left.png`
+    );
     window.setTimeout(() => {
-      triggerDirectDownload(s3u(rk), `split-canvas-${pair.id}-right.png`);
+      triggerDirectDownload(
+        withCacheBust(s3u(rk), `${pair.id}-right`),
+        `split-canvas-${pair.id}-right.png`
+      );
     }, 120);
 
     Swal.fire(
@@ -237,8 +249,12 @@ async function mergePairDownload(pair) {
 function GalleryCard({ pair, onReact, reactBusy }) {
   const leftName = pair.left_user_name || "—";
   const rightName = pair.right_user_name || "—";
-  const leftSrc = pair.left_s3_key ? s3u(pair.left_s3_key) : partImg;
-  const rightSrc = pair.right_s3_key ? s3u(pair.right_s3_key) : partImg;
+  const leftSrc = pair.left_s3_key
+    ? withCacheBust(s3u(pair.left_s3_key), `${pair.id}-left-preview`)
+    : partImg;
+  const rightSrc = pair.right_s3_key
+    ? withCacheBust(s3u(pair.right_s3_key), `${pair.id}-right-preview`)
+    : partImg;
   const waitingLeft = !pair.left_submitted_at;
   const waitingRight = !pair.right_submitted_at;
 
@@ -262,14 +278,14 @@ function GalleryCard({ pair, onReact, reactBusy }) {
             {waitingLeft ? (
               <div className="gallery-card__placeholder">Waiting…</div>
             ) : (
-              <img src={leftSrc} alt="" draggable={false} />
+              <img src={leftSrc} alt="" draggable={false} crossOrigin="anonymous" />
             )}
           </div>
           <div className="gallery-card__half gallery-card__half--right">
             {waitingRight ? (
               <div className="gallery-card__placeholder">Waiting…</div>
             ) : (
-              <img src={rightSrc} alt="" draggable={false} />
+              <img src={rightSrc} alt="" draggable={false} crossOrigin="anonymous" />
             )}
           </div>
         </div>
