@@ -139,6 +139,7 @@ export default function GetPairing() {
         myName: String(user.name || user.email || "You"),
       });
     } catch (e) {
+      console.error("[get-pairing] join failed:", e);
       setError(e.message || "Pairing failed");
     } finally {
       setLoading(false);
@@ -187,15 +188,6 @@ export default function GetPairing() {
           </button>
         </div>
       </header>
-
-      {error && (
-        <p className="get-pairing__error" style={{ textAlign: "center", color: "#b91c1c" }}>
-          {error}{" "}
-          <button type="button" className="get-pairing__retry" onClick={runJoin}>
-            Retry
-          </button>
-        </p>
-      )}
 
       <div className="get-pairing__cards get-pairing__cards--pair-row">
         <div className="get-pairing__card">

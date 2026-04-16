@@ -272,6 +272,17 @@
     max-width: 12rem;
   }
 
+  .timer-single-field {
+    min-width: 12rem;
+    max-width: 14rem;
+  }
+
+  .timer-single-field input[type="text"] {
+    width: 100%;
+    max-width: 14rem;
+    letter-spacing: 0.04em;
+  }
+
   .form-group-v1 {
       margin-top:15px;
     }

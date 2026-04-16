@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
+import { fetchThemeData } from "../../admin/themeSlice";
 import {
   getSplitCanvasPair,
   uploadSplitCanvasDrawing,
@@ -26,7 +27,11 @@ const SPLIT_CTX_KEY = "split_canvas_ctx_v1";
 function s3PublicUrl(filename) {
   if (!filename) return "";
   const base = process.env.REACT_APP_S3_PATH || "";
-  return base.endsWith("/") ? `${base}${filename}` : `${base}/${filename}`;
+  const key = String(filename)
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  return base.endsWith("/") ? `${base}${key}` : `${base}/${key}`;
 }
 
 function parseSplitSets(themeData) {
@@ -95,6 +100,9 @@ export default function DrawPage() {
   const [ctxError, setCtxError] = useState(null);
   const [baseImageUrl, setBaseImageUrl] = useState(part2Img);
   const [submitting, setSubmitting] = useState(false);
+  const [timerInitialized, setTimerInitialized] = useState(false);
+  const [baseImageRetryCount, setBaseImageRetryCount] = useState(0);
+  const [baseImageLoadError, setBaseImageLoadError] = useState(false);
 
   const timerEnabled = useMemo(() => {
     const t = parseInt(themeData?.wmlQuestionTimerSeconds, 10);
@@ -153,6 +161,7 @@ export default function DrawPage() {
     const t = parseInt(themeData.wmlQuestionTimerSeconds, 10);
     const sec = Number.isNaN(t) ? 0 : Math.max(0, t);
     if (sec > 0) setSecondsLeft(sec);
+    setTimerInitialized(true);
   }, [themeData]);
 
   useEffect(() => {
@@ -176,6 +185,14 @@ export default function DrawPage() {
       themeName: String(raw.themeName),
     });
   }, [location.state]);
+
+  useEffect(() => {
+    if (!splitCtx?.themeName || !token) return;
+    const loadedThemeName =
+      themeData?.themename || themeData?.themeName || "";
+    if (loadedThemeName === splitCtx.themeName) return;
+    dispatch(fetchThemeData({ themeId: splitCtx.themeName }));
+  }, [dispatch, splitCtx, token, themeData]);
 
   useEffect(() => {
     if (!splitCtx || !token || !user?.userId) return;
@@ -215,6 +232,8 @@ export default function DrawPage() {
       setCtxError("no_side_image");
       return;
     }
+    setBaseImageRetryCount(0);
+    setBaseImageLoadError(false);
     setBaseImageUrl(s3PublicUrl(key));
   }, [splitCtx, themeData]);
 
@@ -244,20 +263,34 @@ export default function DrawPage() {
       }
       ctx.drawImage(img, 0, 0, w, h);
       ctx.drawImage(canvas, 0, 0);
-      out.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("blob"));
-        },
-        "image/png",
-        0.92
-      );
+      try {
+        out.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("blob"));
+          },
+          "image/png",
+          0.92
+        );
+      } catch (e) {
+        reject(
+          new Error(
+            "Image export blocked by S3 CORS. Please allow GET origin for this app."
+          )
+        );
+      }
     });
   }, []);
 
   const handleSubmitDrawing = useCallback(async () => {
     if (!splitCtx || !token || !user?.userId || submitting || pairBlocked)
       return;
+    if (baseImageLoadError) {
+      alert(
+        "Base image failed to load from S3. Please retry after image loads."
+      );
+      return;
+    }
     if (submitOnceRef.current) return;
     submitOnceRef.current = true;
     setSubmitting(true);
@@ -283,6 +316,7 @@ export default function DrawPage() {
     user,
     submitting,
     pairBlocked,
+    baseImageLoadError,
     buildCompositeBlob,
     navigate,
   ]);
@@ -292,10 +326,11 @@ export default function DrawPage() {
 
   useEffect(() => {
     if (!timerEnabled || !splitCtx || pairBlocked) return;
+    if (!timerInitialized) return;
     if (secondsLeft !== 0) return;
     if (!ready) return;
     submitFnRef.current();
-  }, [secondsLeft, timerEnabled, splitCtx, pairBlocked, ready]);
+  }, [secondsLeft, timerEnabled, splitCtx, pairBlocked, ready, timerInitialized]);
 
   const [historyUi, setHistoryUi] = useState(0);
 
@@ -378,6 +413,7 @@ export default function DrawPage() {
     (e) => {
       const img = e.currentTarget;
       imgRef.current = img;
+      setBaseImageLoadError(false);
       const wrap = wrapRef.current;
       if (!wrap || !img.naturalWidth) return;
       const run = () => {
@@ -392,6 +428,15 @@ export default function DrawPage() {
     },
     [layoutCanvasSquare]
   );
+
+  const handleBaseImgError = useCallback(() => {
+    if (baseImageRetryCount < 2) {
+      setBaseImageRetryCount((n) => n + 1);
+      return;
+    }
+    setBaseImageLoadError(true);
+    setReady(false);
+  }, [baseImageRetryCount]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -539,6 +584,10 @@ export default function DrawPage() {
   };
 
   const showToolbar = !isMobile || mobileToolsOpen;
+  const baseImageSrc =
+    baseImageRetryCount > 0
+      ? `${baseImageUrl}${baseImageUrl.includes("?") ? "&" : "?"}r=${baseImageRetryCount}`
+      : baseImageUrl;
 
   if (ctxError === "missing_context") {
     return (
@@ -742,6 +791,21 @@ export default function DrawPage() {
         )}
 
         <div className="draw-page__canvas-wrap" ref={wrapRef}>
+          {baseImageLoadError && (
+            <div className="draw-page__msg" style={{ marginBottom: 8 }}>
+              Could not load base image from S3 (CORS/network).{" "}
+              <button
+                type="button"
+                className="draw-page__msg-btn"
+                onClick={() => {
+                  setBaseImageLoadError(false);
+                  setBaseImageRetryCount(0);
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {isMobile && !mobileToolsOpen && (
             <button
               type="button"
@@ -767,13 +831,14 @@ export default function DrawPage() {
             {/* crossOrigin + S3 CORS (GET) for this app origin keeps the canvas exportable (toBlob). */}
             <img
               ref={imgRef}
-              key={baseImageUrl}
-              src={baseImageUrl}
+              key={`${baseImageUrl}-${baseImageRetryCount}`}
+              src={baseImageSrc}
               crossOrigin="anonymous"
               alt=""
               draggable={false}
               className="draw-page__base-img"
               onLoad={handleBaseImgLoad}
+              onError={handleBaseImgError}
               style={
                 baseSize
                   ? {

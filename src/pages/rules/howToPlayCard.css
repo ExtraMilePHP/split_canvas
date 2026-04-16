@@ -29,7 +29,7 @@
 
 .how-to-play__card {
   margin-top: 0.5rem;
-  padding: 1rem 1.25rem 2.75rem;
+  /* padding: 1rem 1.25rem 2.75rem; */
   border-radius: 4px;
   background: transparent;
   border: none;

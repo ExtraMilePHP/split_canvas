@@ -10,6 +10,7 @@ import "../rules/rules.css";
 import "./QuestionsTable.css";
 
 const MAX_SETS = 10;
+const REQUIRED_IMAGE_SIZE = 450;
 
 function s3Url(filename) {
   if (!filename) return "";
@@ -28,6 +29,28 @@ const QuestionsTable = () => {
   const [saving, setSaving] = useState(false);
   const [leftFile, setLeftFile] = useState(null);
   const [rightFile, setRightFile] = useState(null);
+
+  const getImageSize = (file) =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        URL.revokeObjectURL(url);
+        resolve({ w, h });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Could not read image dimensions"));
+      };
+      img.src = url;
+    });
+
+  useEffect(() => {
+    if (!currentTheme || !token) return;
+    dispatch(fetchThemeData({ themeId: currentTheme, isAdmin: true }));
+  }, [dispatch, currentTheme, token]);
 
   useEffect(() => {
     const raw = themeData?.splitImageSets;
@@ -82,6 +105,26 @@ const QuestionsTable = () => {
     }
     try {
       setSaving(true);
+      const [leftSize, rightSize] = await Promise.all([
+        getImageSize(leftFile),
+        getImageSize(rightFile),
+      ]);
+      if (
+        leftSize.w !== REQUIRED_IMAGE_SIZE ||
+        leftSize.h !== REQUIRED_IMAGE_SIZE
+      ) {
+        throw new Error(
+          `Left image must be exactly ${REQUIRED_IMAGE_SIZE}x${REQUIRED_IMAGE_SIZE}px (selected: ${leftSize.w}x${leftSize.h})`
+        );
+      }
+      if (
+        rightSize.w !== REQUIRED_IMAGE_SIZE ||
+        rightSize.h !== REQUIRED_IMAGE_SIZE
+      ) {
+        throw new Error(
+          `Right image must be exactly ${REQUIRED_IMAGE_SIZE}x${REQUIRED_IMAGE_SIZE}px (selected: ${rightSize.w}x${rightSize.h})`
+        );
+      }
       const leftName = await uploadSplitCanvasImageFile(leftFile, token);
       const rightName = await uploadSplitCanvasImageFile(rightFile, token);
       const next = [...sets, { left: leftName, right: rightName }];
@@ -144,7 +187,8 @@ const QuestionsTable = () => {
             </div>
             <p className="split-sets-helper">
               Up to {MAX_SETS} sets (left + right image per set). Same theme for
-              all.
+              all. Each image must be exactly {REQUIRED_IMAGE_SIZE}x
+              {REQUIRED_IMAGE_SIZE}px.
             </p>
 
             <div className="split-sets-add">

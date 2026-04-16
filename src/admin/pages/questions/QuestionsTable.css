@@ -393,24 +393,30 @@
 .split-sets-add {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    align-items: flex-end;
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    column-gap: 1rem;
+    row-gap: 0.85rem;
+    align-items: flex-start;
+    margin-top: 1.1rem;
+    margin-bottom: 1.75rem;
+    padding: 1rem 1.1rem;
     border: 1px dashed #ccc;
     border-radius: 8px;
+    background: #fcfcfc;
 }
 
 .split-sets-add .add-new-question-v1 {
-    margin-top: 0;
+    margin-top: 1.85rem;
     margin-bottom: 0;
+    align-self: flex-start;
+    height: 2.3rem;
+    line-height: 1;
+    margin-left: 10px;
 }
 
 .split-sets-field {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
     min-width: 0;
     flex: 1 1 12rem;
     max-width: 20rem;
@@ -430,7 +436,7 @@
     font-family: inherit;
     font-size: 0.8125rem;
     color: #4b5563;
-    padding: 0.35rem 0.5rem;
+    padding: 0.45rem 0.55rem;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     background: #fafafa;
@@ -726,5 +732,22 @@
   .action-buttons {
     flex-direction: column;
     gap: 6px;
+  }
+
+  .split-sets-add {
+    align-items: stretch;
+    padding: 0.9rem;
+    row-gap: 0.75rem;
+  }
+
+  .split-sets-field {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .split-sets-add .add-new-question-v1 {
+    width: 100%;
+    margin: 0.2rem 0 0;
+    height: auto;
   }
 }

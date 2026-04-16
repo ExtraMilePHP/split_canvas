@@ -72,6 +72,20 @@ const Rules = () => {
   };
 
   const handleSubmit = async () => {
+    const trimmedRules = rules.map((r) => String(r || "").trim());
+    if (trimmedRules.length < 1) {
+      Swal.fire("Validation", "At least 1 rule is required.", "warning");
+      return;
+    }
+    if (trimmedRules.some((r) => r === "")) {
+      Swal.fire(
+        "Validation",
+        "Rule fields cannot be blank. Fill or remove empty rules before saving.",
+        "warning"
+      );
+      return;
+    }
+
     const colorsFromTheme =
       data?.colors && typeof data.colors === "object"
         ? { ...DEFAULT_COLORS, ...data.colors }
@@ -79,7 +93,7 @@ const Rules = () => {
 
     const payload = {
       data: {
-        rules: rules.filter((r) => r.trim() !== ""),
+        rules: trimmedRules,
         main_title: data?.main_title ?? "",
         landing_page_title: data?.landing_page_title ?? "",
         custom_text_thank_you_page: data?.custom_text_thank_you_page ?? "",
