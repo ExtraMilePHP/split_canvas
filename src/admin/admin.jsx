@@ -41,7 +41,7 @@ function Admin({children}){
           <div className="brand-logo-holder" onClick={()=>{window.location.href = process.env.REACT_APP_BASE_URL;}}>
           <img src="/admin/play.png" className="brand-logo"/>{localStorage.getItem("session") === "admin&admin" && " SUPERADMIN"}
          </div>
-         <div onClick={()=>{redirectGameSession()}}>Split Canvas</div>
+         <div>Split Canvas</div>
           
          </div>
        

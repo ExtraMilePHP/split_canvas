@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Swal from "sweetalert2";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,11 @@ import "../rules/rules.css";
 import "./QuestionsTable.css";
 
 const MAX_SETS = 10;
-const REQUIRED_IMAGE_SIZE = 450;
+/** One row: left 450 + right 450 wide, one 450px-tile tall. */
+const FULL_IMAGE_WIDTH = 900;
+const FULL_IMAGE_HEIGHT = 450;
+/** Each uploaded half matches legacy 450×450 per side. */
+const HALF_SIZE = 450;
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png"];
 const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png"];
 
@@ -18,6 +22,100 @@ function s3Url(filename) {
   if (!filename) return "";
   const base = process.env.REACT_APP_S3_PATH || "";
   return `${base}${filename}`;
+}
+
+function canvasToBlob(canvas, mimeType, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Could not encode image"));
+      },
+      mimeType,
+      quality
+    );
+  });
+}
+
+/**
+ * Validates 900×450 composite, splits into two 450×450 images for S3 (left + right).
+ */
+async function splitFullImageToLeftRightFiles(file) {
+  const mime = (file.type || "").toLowerCase();
+  if (!ALLOWED_FILE_TYPES.includes(mime)) {
+    throw new Error("Only JPG/JPEG and PNG are allowed.");
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () =>
+        reject(new Error("Could not read or decode image"));
+      image.src = url;
+    });
+
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (w !== FULL_IMAGE_WIDTH || h !== FULL_IMAGE_HEIGHT) {
+      throw new Error(
+        `Image must be exactly ${FULL_IMAGE_WIDTH}×${FULL_IMAGE_HEIGHT}px (selected: ${w}×${h}).`
+      );
+    }
+
+    const leftCanvas = document.createElement("canvas");
+    leftCanvas.width = HALF_SIZE;
+    leftCanvas.height = HALF_SIZE;
+    const rightCanvas = document.createElement("canvas");
+    rightCanvas.width = HALF_SIZE;
+    rightCanvas.height = HALF_SIZE;
+
+    const lctx = leftCanvas.getContext("2d");
+    const rctx = rightCanvas.getContext("2d");
+    if (!lctx || !rctx) throw new Error("Canvas unavailable");
+
+    lctx.drawImage(
+      img,
+      0,
+      0,
+      HALF_SIZE,
+      HALF_SIZE,
+      0,
+      0,
+      HALF_SIZE,
+      HALF_SIZE
+    );
+    rctx.drawImage(
+      img,
+      HALF_SIZE,
+      0,
+      HALF_SIZE,
+      HALF_SIZE,
+      0,
+      0,
+      HALF_SIZE,
+      HALF_SIZE
+    );
+
+    const outMime = mime === "image/jpeg" ? "image/jpeg" : "image/png";
+    const quality = mime === "image/jpeg" ? 0.92 : undefined;
+
+    const leftBlob = await canvasToBlob(leftCanvas, outMime, quality);
+    const rightBlob = await canvasToBlob(rightCanvas, outMime, quality);
+
+    const ext = mime === "image/jpeg" ? "jpg" : "png";
+    const leftOut = new File([leftBlob], `split-left.${ext}`, {
+      type: outMime,
+    });
+    const rightOut = new File([rightBlob], `split-right.${ext}`, {
+      type: outMime,
+    });
+
+    return [leftOut, rightOut];
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 const QuestionsTable = () => {
@@ -29,25 +127,8 @@ const QuestionsTable = () => {
 
   const [sets, setSets] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [leftFile, setLeftFile] = useState(null);
-  const [rightFile, setRightFile] = useState(null);
-
-  const getImageSize = (file) =>
-    new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        URL.revokeObjectURL(url);
-        resolve({ w, h });
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("Could not read image dimensions"));
-      };
-      img.src = url;
-    });
+  const [fullImageFile, setFullImageFile] = useState(null);
+  const fullImageInputRef = useRef(null);
 
   useEffect(() => {
     if (!currentTheme || !token) return;
@@ -101,50 +182,35 @@ const QuestionsTable = () => {
       Swal.fire("Limit", `Maximum ${MAX_SETS} image sets per theme.`, "info");
       return;
     }
-    if (!leftFile || !rightFile) {
-      Swal.fire("Select files", "Choose both a left and a right image.", "warning");
+    if (!fullImageFile) {
+      Swal.fire(
+        "Select file",
+        `Choose one ${FULL_IMAGE_WIDTH}×${FULL_IMAGE_HEIGHT}px image.`,
+        "warning"
+      );
       return;
     }
-    const leftType = (leftFile.type || "").toLowerCase();
-    const rightType = (rightFile.type || "").toLowerCase();
-    if (
-      !ALLOWED_FILE_TYPES.includes(leftType) ||
-      !ALLOWED_FILE_TYPES.includes(rightType)
-    ) {
+    const t = (fullImageFile.type || "").toLowerCase();
+    if (!ALLOWED_FILE_TYPES.includes(t)) {
       Swal.fire(
         "Invalid file type",
-        "Only JPG/JPEG and PNG files are allowed for both left and right images.",
+        "Only JPG/JPEG and PNG files are allowed.",
         "warning"
       );
       return;
     }
     try {
       setSaving(true);
-      const [leftSize, rightSize] = await Promise.all([
-        getImageSize(leftFile),
-        getImageSize(rightFile),
+      const [leftFile, rightFile] = await splitFullImageToLeftRightFiles(
+        fullImageFile
+      );
+      const [leftName, rightName] = await Promise.all([
+        uploadSplitCanvasImageFile(leftFile, token),
+        uploadSplitCanvasImageFile(rightFile, token),
       ]);
-      if (
-        leftSize.w !== REQUIRED_IMAGE_SIZE ||
-        leftSize.h !== REQUIRED_IMAGE_SIZE
-      ) {
-        throw new Error(
-          `Left image must be exactly ${REQUIRED_IMAGE_SIZE}x${REQUIRED_IMAGE_SIZE}px (selected: ${leftSize.w}x${leftSize.h})`
-        );
-      }
-      if (
-        rightSize.w !== REQUIRED_IMAGE_SIZE ||
-        rightSize.h !== REQUIRED_IMAGE_SIZE
-      ) {
-        throw new Error(
-          `Right image must be exactly ${REQUIRED_IMAGE_SIZE}x${REQUIRED_IMAGE_SIZE}px (selected: ${rightSize.w}x${rightSize.h})`
-        );
-      }
-      const leftName = await uploadSplitCanvasImageFile(leftFile, token);
-      const rightName = await uploadSplitCanvasImageFile(rightFile, token);
       const next = [...sets, { left: leftName, right: rightName }];
-      setLeftFile(null);
-      setRightFile(null);
+      setFullImageFile(null);
+      if (fullImageInputRef.current) fullImageInputRef.current.value = "";
       await persistSets(next);
     } catch (e) {
       Swal.fire("Upload failed", e.message || "Error", "error");
@@ -201,30 +267,27 @@ const QuestionsTable = () => {
               <i className="fa-solid fa-images" /> &nbsp; Split image sets
             </div>
             <p className="split-sets-helper">
-              Up to {MAX_SETS} sets (left + right image per set). Same theme for
-              all. Each image must be exactly {REQUIRED_IMAGE_SIZE}x
-              {REQUIRED_IMAGE_SIZE}px. Allowed files: JPG, JPEG, PNG.
+              Up to {MAX_SETS} sets per theme. Upload one{" "}
+              <strong>
+                {FULL_IMAGE_WIDTH}×{FULL_IMAGE_HEIGHT}px
+              </strong>{" "}
+              composite (two 450×450 panels side by side). It is split into
+              left and right <strong>450×450</strong> images and uploaded
+              automatically. Allowed: JPG, JPEG, PNG.
             </p>
 
-            <div className="split-sets-add">
-              <div className="split-sets-field">
-                <label htmlFor="split-left-file">Left image</label>
+            <div className="split-sets-add split-sets-add--single">
+              <div className="split-sets-field split-sets-field--full">
+                <label htmlFor="split-full-file">Full image</label>
                 <input
-                  id="split-left-file"
+                  ref={fullImageInputRef}
+                  id="split-full-file"
                   className="split-sets-file-input"
                   type="file"
                   accept={ALLOWED_FILE_EXTENSIONS.join(",")}
-                  onChange={(e) => setLeftFile(e.target.files?.[0] || null)}
-                />
-              </div>
-              <div className="split-sets-field">
-                <label htmlFor="split-right-file">Right image</label>
-                <input
-                  id="split-right-file"
-                  className="split-sets-file-input"
-                  type="file"
-                  accept={ALLOWED_FILE_EXTENSIONS.join(",")}
-                  onChange={(e) => setRightFile(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    setFullImageFile(e.target.files?.[0] || null)
+                  }
                 />
               </div>
               <button
@@ -251,7 +314,8 @@ const QuestionsTable = () => {
                   {sets.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="split-sets-empty-cell">
-                        No image sets yet. Upload a left and right image above.
+                        No image sets yet. Add a {FULL_IMAGE_WIDTH}×
+                        {FULL_IMAGE_HEIGHT}px image above.
                       </td>
                     </tr>
                   ) : (

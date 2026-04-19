@@ -11,7 +11,7 @@
   letter-spacing: 0.02em;
   color: #c08345;
   text-align: center;
-  margin-top:50px;
+  margin-top:10px;
 }
 
 .how-to-play {
@@ -90,7 +90,7 @@
 
 .how-to-play__footer {
   position: absolute;
-  bottom: 0;
+  bottom: -60px;
   left: 50%;
   transform: translate(-50%, 50%);
   z-index: 3;

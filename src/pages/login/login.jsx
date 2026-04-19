@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../loginSlice";
+import { hydrateUserFromStorage, loginUser } from "../loginSlice";
 import "./login.css";
 import { setBackButtonUrl } from "../uiSlice";
 import Swal from "sweetalert2";
+import { leaveToExtramile } from "../mobileAppBridge";
 
 function Login() {
   const dispatch = useDispatch();
@@ -20,6 +21,22 @@ function Login() {
   useEffect(() => {
     dispatch(loginUser());
   }, [dispatch]);
+
+  /** No ?fromMobileApp in URL: clear stale embedded flag in storage + Redux before this login resolves. */
+  useEffect(() => {
+    if (searchParams.get("fromMobileApp") !== null) return;
+    try {
+      const raw = localStorage.getItem("userData");
+      if (!raw) return;
+      const u = JSON.parse(raw);
+      if (u.fromMobileApp !== true) return;
+      const next = { ...u, fromMobileApp: false };
+      localStorage.setItem("userData", JSON.stringify(next));
+      dispatch(hydrateUserFromStorage());
+    } catch {
+      /* ignore */
+    }
+  }, [searchParams, dispatch]);
 
   useEffect(() => {
     if (status === "succeeded" && user && isAdmin) {
@@ -42,7 +59,7 @@ function Login() {
   const msg = error ? String(error) : "Session expired";
   const redirect = user && user.backButtonRedirect ? user.backButtonRedirect : "/";
   Swal.fire("Session Expired!", msg, "error").then(() => {
-    window.location.href = redirect;
+    leaveToExtramile(redirect, user);
   });
 }, [status, error, user]);
 
@@ -54,7 +71,7 @@ useEffect(() => {
     const msg = error ? String(error) : "You have already played!";
     const redirect = user.backButtonRedirect || "/";
     Swal.fire("You have already played!", "  ", "error").then(() => {
-      window.location.href = redirect;
+      leaveToExtramile(redirect, user);
     });
   }
 }, [status, user, error]);

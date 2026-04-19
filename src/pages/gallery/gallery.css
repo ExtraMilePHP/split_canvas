@@ -52,6 +52,54 @@
   align-items: start;
 }
 
+.gallery-page__pagination {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1.75rem;
+  padding-top: 0.5rem;
+}
+
+.gallery-page__page-meta {
+  font-family: inherit;
+  font-size: clamp(0.82rem, 2.2vw, 0.95rem);
+  font-weight: 600;
+  color: #6b4a2a;
+  text-align: center;
+  min-width: min(100%, 16rem);
+}
+
+.gallery-page__page-btn {
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 2px solid #c18346;
+  background: rgba(255, 252, 240, 0.95);
+  color: #8b5a2b;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(80, 50, 20, 0.12);
+}
+
+.gallery-page__page-btn:hover:not(:disabled) {
+  background: #fff;
+  filter: brightness(1.03);
+}
+
+.gallery-page__page-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.gallery-page__page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .gallery-card {
   display: flex;
   flex-direction: column;
@@ -283,4 +331,68 @@
   .gallery-page {
     padding: 1.25rem 1rem 2rem;
   }
+}
+
+/* Simple notice modal (replaces SweetAlert on this page) */
+.gallery-notice__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  background: rgba(45, 32, 18, 0.45);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.gallery-notice__box {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.35rem 1.35rem 1.1rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fffbf5, #fff8ef);
+  box-shadow:
+    0 20px 50px rgba(60, 40, 20, 0.28),
+    0 0 0 1px rgba(193, 131, 70, 0.2);
+  text-align: center;
+}
+
+.gallery-notice__title {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.05rem, 3.2vw, 1.2rem);
+  font-weight: 800;
+  color: #8b5a2a;
+  letter-spacing: 0.02em;
+}
+
+.gallery-notice__text {
+  margin: 0 0 1.15rem;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: #5c3d22;
+}
+
+.gallery-notice__ok {
+  min-width: 6.5rem;
+  padding: 0.55rem 1.25rem;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #fffaf3;
+  background: linear-gradient(180deg, #d4a06a, #c18346);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(193, 131, 70, 0.45);
+}
+
+.gallery-notice__ok:hover {
+  filter: brightness(1.06);
+}
+
+.gallery-notice__ok:active {
+  transform: scale(0.98);
 }

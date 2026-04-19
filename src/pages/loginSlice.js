@@ -30,6 +30,21 @@ function resolveUserDisplayName(data) {
   return empId || '';
 }
 
+/** null, undefined, "", whitespace-only, or string "null" (any case). */
+function isMissingOrgLogo(value) {
+  if (value == null) return true;
+  const s = String(value).trim();
+  return s === '' || s.toLowerCase() === 'null';
+}
+
+/** From ?fromMobileApp=true|1 on current login URL; false if absent (URLSearchParams.get is null). */
+function parseFromMobileAppFlag(queryParams) {
+  const v = queryParams.get('fromMobileApp');
+  if (v == null) return false;
+  const lower = String(v).toLowerCase();
+  return lower === 'true' || lower === '1';
+}
+
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (_, { dispatch, rejectWithValue }) => {
@@ -51,8 +66,8 @@ export const loginUser = createAsyncThunk(
       if (demo) {
         console.log("working with demo now");
         function generateRandomUser() {
-         // const randomString = 'demo' + Math.floor(Math.random() * 10000);
-         const randomString = 'demoblsddsfddddssdfdsddf';
+        const randomString = 'demo' + Math.floor(Math.random() * 10000);
+        //  const randomString = 'demoblsddsfddddssdfdsddf';
           return {
             data: {
               data: {
@@ -121,7 +136,8 @@ export const loginUser = createAsyncThunk(
         role:userResponseData.role,
         companyLogoUrl: process.env.REACT_APP_EM_LOGO,
         backButtonRedirect: process.env.REACT_APP_BASE_URL,
-        userPlayedCount:userResponseData.userPlayedCount
+        userPlayedCount:userResponseData.userPlayedCount,
+        fromMobileApp: parseFromMobileAppFlag(queryParams),
       };
 
       // Fetch organization details if not demo
@@ -132,11 +148,12 @@ export const loginUser = createAsyncThunk(
          console.log(orgRes);
         if (orgRes.data?.message === 'ORGANIZATIONS_FETCHED_SUCCESSFULLY') {
           console.log(orgRes.data);
-          console.log(orgRes.data?.organization.companyLogo);
-          if(orgRes.data?.organization.companyLogo==""){
+          console.log(orgRes.data?.organization?.companyLogo);
+          const companyLogo = orgRes.data?.organization?.companyLogo;
+          if (isMissingOrgLogo(companyLogo)) {
             userData.companyLogoUrl = process.env.REACT_APP_EM_LOGO;
-          }else{
-            userData.companyLogoUrl = `${process.env.REACT_APP_S3BUCKET_URL}/${orgRes.data.organization.companyLogo}`;
+          } else {
+            userData.companyLogoUrl = `${process.env.REACT_APP_S3BUCKET_URL}/${companyLogo}`;
           }
           userData.backButtonRedirect = `${process.env.REACT_APP_BASE_URL}/game-detail/${userResponseData.gameId}`;
           console.log("setcompany url",userData.companyLogoUrl);
@@ -165,7 +182,16 @@ const authSlice = createSlice({
     logout: state => {
       state.user = null;
       localStorage.removeItem('userData');
-    }
+    },
+    hydrateUserFromStorage: (state) => {
+      try {
+        const raw = localStorage.getItem('userData');
+        if (!raw) return;
+        state.user = JSON.parse(raw);
+      } catch {
+        /* ignore */
+      }
+    },
   },
   extraReducers: builder => {
     builder
@@ -184,5 +210,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, hydrateUserFromStorage } = authSlice.actions;
 export default authSlice.reducer;

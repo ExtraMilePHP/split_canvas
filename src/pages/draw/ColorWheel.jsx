@@ -1,20 +1,69 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 
 const DEFAULT_SIZE = 200;
 const RING_GAP_REF = 4;
 
+/** Top of wheel (deg from atan2(dx,-dy)); must match conic gradient white wedge. */
+const WHITE_SECTOR_CENTER_DEG = 0;
+/** Half angular width of the white chip on the outer ring (total span = 2 × this). */
+const WHITE_SECTOR_HALF_WIDTH_DEG = 9;
+
+const RING_W_START =
+  (WHITE_SECTOR_CENTER_DEG - WHITE_SECTOR_HALF_WIDTH_DEG + 360) % 360;
+const RING_W_END =
+  (WHITE_SECTOR_CENTER_DEG + WHITE_SECTOR_HALF_WIDTH_DEG + 360) % 360;
+
+/** Inner radius of the hue ring (hole). Matches mask: outerR * 0.52 + gap. */
+function ringHoleRadiusPx(side, designSize) {
+  const outerR = side / 2;
+  const scale = side / designSize;
+  return outerR * 0.52 + RING_GAP_REF * scale;
+}
+
 /**
- * @param {{ h: number, s: number, v: number }} hsv
- * @param {(next: { h: number, s: number, v: number }) => void} onChange
- * @param {number} [size]
+ * True if deg (0–360, same convention as atan2(dx,-dy)) lies in the white sector.
  */
-export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
+function angleInWhiteSector(deg) {
+  const c = WHITE_SECTOR_CENTER_DEG;
+  const hw = WHITE_SECTOR_HALF_WIDTH_DEG;
+  let a = deg - c;
+  a = ((a + 540) % 360) - 180;
+  return Math.abs(a) <= hw;
+}
+
+/**
+ * Conic stops aligned with {@link angleInWhiteSector}: white from RING_W_START to RING_W_END clockwise.
+ * Built in JS so hit-testing and pixels stay in sync.
+ */
+function hueRingConicGradient() {
+  const wEnd = RING_W_END;
+  const wStart = RING_W_START;
+  return `conic-gradient(
+    hsl(0, 100%, 50%) ${wEnd}deg,
+    hsl(60, 100%, 50%) ${wEnd + 60}deg,
+    hsl(120, 100%, 50%) ${wEnd + 120}deg,
+    hsl(180, 100%, 50%) ${wEnd + 180}deg,
+    hsl(240, 100%, 50%) ${wEnd + 240}deg,
+    hsl(300, 100%, 50%) ${wEnd + 300}deg,
+    hsl(330, 100%, 50%) 330deg,
+    #fff ${wStart}deg,
+    #fff 360deg
+  )`;
+}
+
+/**
+ * Hue on outer ring; dedicated white sector on the ring (not the center hole).
+ *
+ * @param {{ h: number, onChange: (next: { h?: number, s?: number, v?: number }) => void, size?: number }} props
+ */
+export default function ColorWheel({ h, onChange, size = DEFAULT_SIZE }) {
   const wrapRef = useRef(null);
   const draggingRef = useRef(null);
 
+  const ringBackground = useMemo(() => hueRingConicGradient(), []);
+
   const outerRRef = size / 2;
-  const innerDiskRRef = outerRRef * 0.52;
-  const ringInnerRRef = innerDiskRRef + RING_GAP_REF;
+  const ringInnerRRef = ringHoleRadiusPx(size, size);
 
   const handlePointer = useCallback(
     (clientX, clientY) => {
@@ -23,10 +72,9 @@ export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
       const rect = el.getBoundingClientRect();
       const side = Math.min(rect.width, rect.height);
       const outerR = side / 2;
-      const innerDiskR = outerR * 0.52;
+      const ringInnerR = ringHoleRadiusPx(side, size);
       const scale = side / size;
-      const ringInnerR = innerDiskR + RING_GAP_REF * scale;
-      const ringOuterSlop = 2 * scale;
+      const ringOuterSlop = 4 * scale;
 
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
@@ -34,25 +82,23 @@ export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
       const dy = clientY - cy;
       const dist = Math.hypot(dx, dy);
 
-      if (dist <= innerDiskR) {
-        const inner = el.querySelector(".draw-color-wheel__inner");
-        if (!inner) return;
-        const ir = inner.getBoundingClientRect();
-        let u = (clientX - ir.left) / ir.width;
-        let vv = 1 - (clientY - ir.top) / ir.height;
-        u = Math.max(0, Math.min(1, u));
-        vv = Math.max(0, Math.min(1, vv));
-        onChange({ h, s: u, v: vv });
-        return;
-      }
-
       if (dist >= ringInnerR && dist <= outerR + ringOuterSlop) {
         let deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
         if (deg < 0) deg += 360;
-        onChange({ h: deg, s, v });
+
+        if (angleInWhiteSector(deg)) {
+          onChange({
+            h: WHITE_SECTOR_CENTER_DEG,
+            s: 0,
+            v: 1,
+          });
+          return;
+        }
+
+        onChange({ h: deg, s: 1, v: 1 });
       }
     },
-    [h, s, v, onChange, size]
+    [onChange, size]
   );
 
   const onPointerDown = (e) => {
@@ -81,10 +127,6 @@ export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
   const ringDotX = 50 + (ringMidR / outerRRef) * 50 * Math.sin(hueRad);
   const ringDotY = 50 - (ringMidR / outerRRef) * 50 * Math.cos(hueRad);
 
-  const innerDotLeft = s * 100;
-  const innerDotTop = (1 - v) * 100;
-
-  const innerPx = innerDiskRRef * 2;
   const maskInnerPx = size * 0.26;
 
   return (
@@ -102,23 +144,11 @@ export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
       onPointerCancel={onPointerUp}
       role="presentation"
     >
-      <div className="draw-color-wheel__ring" aria-hidden="true" />
       <div
-        className="draw-color-wheel__inner"
-        style={{ width: innerPx, height: innerPx }}
+        className="draw-color-wheel__ring"
+        style={{ background: ringBackground }}
         aria-hidden="true"
-      >
-        <div
-          className="draw-color-wheel__inner-visual"
-          style={{
-            background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${h}, 100%, 50%))`,
-          }}
-        />
-        <span
-          className="draw-color-wheel__dot draw-color-wheel__dot--inner"
-          style={{ left: `${innerDotLeft}%`, top: `${innerDotTop}%` }}
-        />
-      </div>
+      />
       <span
         className="draw-color-wheel__dot draw-color-wheel__dot--ring"
         style={{ left: `${ringDotX}%`, top: `${ringDotY}%` }}

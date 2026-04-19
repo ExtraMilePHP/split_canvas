@@ -413,6 +413,16 @@
     margin-left: 10px;
 }
 
+.split-sets-add--single .split-sets-field--full {
+    flex: 1 1 18rem;
+    max-width: 28rem;
+}
+
+.split-sets-add--single .add-new-question-v1 {
+    margin-top: 0;
+    align-self: center;
+}
+
 .split-sets-field {
     display: flex;
     flex-direction: column;
@@ -749,5 +759,10 @@
     width: 100%;
     margin: 0.2rem 0 0;
     height: auto;
+  }
+
+  .split-sets-add--single .add-new-question-v1 {
+    margin-top: 0.2rem;
+    align-self: stretch;
   }
 }

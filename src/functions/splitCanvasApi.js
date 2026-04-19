@@ -40,6 +40,17 @@ export async function uploadSplitCanvasDrawing(token, formData) {
   return json;
 }
 
+/**
+ * GET URL for gallery SSE (`EventSource` cannot send Authorization; token is passed as query — same caveats as plan).
+ */
+export function getSplitCanvasGalleryStreamUrl(token, themeName) {
+  const q = new URLSearchParams({
+    themeName: String(themeName),
+    token: String(token),
+  });
+  return `${apiBase()}/splitCanvas/gallery/stream?${q.toString()}`;
+}
+
 export async function fetchSplitCanvasGallery(token, themeName, userId) {
   const body = { themeName };
   if (userId != null && String(userId) !== "") {

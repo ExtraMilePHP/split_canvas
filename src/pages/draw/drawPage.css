@@ -34,17 +34,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.draw-page__backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 35;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: rgba(40, 28, 18, 0.45);
-  cursor: pointer;
-}
-
 .draw-page__frame {
   display: flex;
   flex-direction: row;
@@ -57,6 +46,8 @@
   border-radius: 20px;
   background: linear-gradient(165deg, #faf3e4 0%, #f0e6d4 100%);
   box-shadow: 0 6px 24px rgba(80, 50, 20, 0.08);
+  overflow: hidden;
+  min-width: 0;
 }
 
 .draw-page__toolbar {
@@ -70,6 +61,7 @@
   border-radius: 14px;
   border: 2px solid #e8dcc8;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .draw-page__toolbar-top {
@@ -266,82 +258,17 @@
   border: 2px solid #e8dcc8;
   padding: 0.5rem;
   overflow: hidden;
-}
-
-.draw-page__edit-fab {
-  position: absolute;
-  right: 0.65rem;
-  bottom: 0.65rem;
-  z-index: 10;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 2px solid #8f6a46;
-  background: #a67c52;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.35);
-}
-
-.draw-page__edit-fab:active {
-  transform: scale(0.96);
-}
-
-.draw-page__edit-fab-icon {
-  display: block;
-}
-
-.draw-page__sheet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e8dcc8;
-}
-
-.draw-page__sheet-title {
-  font-weight: 800;
-  font-size: 0.95rem;
-  color: #5c3d1e;
-}
-
-.draw-page__sheet-done {
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #a67c52;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-}
-
-.draw-page__sheet-done:hover {
-  text-decoration: underline;
-}
-
-.draw-page__sheet-done--highlight {
-  color: #5c3d1e;
-  background: #fff8ee;
-  border-radius: 10px;
-  border: 2px solid #a67c52;
-  box-shadow: 0 0 0 2px rgba(166, 124, 82, 0.25);
-}
-
-.draw-page__sheet-done--highlight:hover {
-  text-decoration: underline;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .draw-page__canvas-stack {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
   max-width: 100%;
   line-height: 0;
+  box-sizing: border-box;
 }
 
 .draw-page__base-img {
@@ -380,15 +307,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(
-    hsl(0, 100%, 50%),
-    hsl(60, 100%, 50%),
-    hsl(120, 100%, 50%),
-    hsl(180, 100%, 50%),
-    hsl(240, 100%, 50%),
-    hsl(300, 100%, 50%),
-    hsl(0, 100%, 50%)
-  );
+  /* background: set inline in ColorWheel.jsx (white sector must match JS hit-test) */
   -webkit-mask: radial-gradient(
     circle at center,
     transparent var(--cw-mask-inner, 52px),
@@ -404,22 +323,6 @@
   pointer-events: none;
 }
 
-.draw-color-wheel__inner {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 0 2px rgba(92, 61, 30, 0.2);
-  pointer-events: none;
-}
-
-.draw-color-wheel__inner-visual {
-  position: absolute;
-  inset: 0;
-}
-
 .draw-color-wheel__dot {
   position: absolute;
   width: 12px;
@@ -433,11 +336,8 @@
   z-index: 2;
 }
 
-.draw-color-wheel__dot--inner {
-  transform: translate(-50%, -50%);
-}
-
 .draw-color-wheel__dot--ring {
+  transform: translate(-50%, -50%);
   z-index: 3;
 }
 
@@ -453,7 +353,7 @@
     align-items: stretch;
     height: 550px;
     box-sizing: border-box;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   .draw-page__toolbar {
@@ -504,39 +404,28 @@
     overflow: hidden;
   }
 
-  .draw-page__wheel-row {
-    flex-wrap: wrap;
-    row-gap: 0.65rem;
-    min-width: 0;
-  }
-
-  .draw-page__toolbar--sheet {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 40;
-    max-height: min(78vh, 620px);
-    overflow-y: auto;
-    overflow-x: hidden;
-    margin: 0;
-    border-radius: 18px 18px 0 0;
-    box-shadow: 0 -8px 32px rgba(40, 28, 18, 0.2);
-    flex: none;
-    box-sizing: border-box;
-    min-width: 0;
-    max-width: 100%;
-    width: 100%;
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
-  }
-
   .draw-page__canvas-wrap {
+    order: 1;
     flex: 1 1 auto;
     width: 100%;
     max-width: 100%;
     min-width: 0;
     min-height: 200px;
+  }
+
+  .draw-page__toolbar {
+    order: 2;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.75rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .draw-page__wheel-row {
+    flex-wrap: wrap;
+    row-gap: 0.65rem;
+    min-width: 0;
   }
 }

@@ -18,11 +18,54 @@ import part2Img from "../../img/assets/part-2.png";
 import brushIcon from "../../img/assets/brush.png";
 import eraserIcon from "../../img/assets/eraser.png";
 import pencilIcon from "../../img/assets/pencil.png";
+import fillIcon from "../../img/assets/fill.png";
 import ColorWheel from "./ColorWheel";
-import { hsvToHex } from "./colorUtils";
+import { floodFillMask, rgbWithinTolerance } from "./floodFill";
+import { hsvToHex, hsvToRgb } from "./colorUtils";
 import "./drawPage.css";
 
 const SPLIT_CTX_KEY = "split_canvas_ctx_v1";
+const DRAW_TIMER_STORAGE_PREFIX = "split_canvas_draw_timer_v1";
+
+function drawTimerStorageKey(sessionId, userId, pairId, side) {
+  const sid =
+    sessionId != null && String(sessionId).trim() !== ""
+      ? String(sessionId)
+      : "no-session";
+  const uid =
+    userId != null && String(userId).trim() !== ""
+      ? String(userId)
+      : "no-user";
+  return `${DRAW_TIMER_STORAGE_PREFIX}__${sid}__${uid}__${String(pairId)}__${String(side)}`;
+}
+
+function readDrawTimerDeadline(storageKey) {
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.deadlineMs === "number") return parsed.deadlineMs;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeDrawTimerDeadline(storageKey, deadlineMs) {
+  try {
+    sessionStorage.setItem(storageKey, JSON.stringify({ deadlineMs }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearDrawTimer(storageKey) {
+  try {
+    sessionStorage.removeItem(storageKey);
+  } catch {
+    /* ignore */
+  }
+}
 
 function s3PublicUrl(filename) {
   if (!filename) return "";
@@ -61,22 +104,11 @@ function formatTime(totalSec) {
 function strokeWidthForTool(tool, pencilThickness, brushThickness) {
   if (tool === "pencil") return pencilThickness;
   if (tool === "eraser" || tool === "brush") return brushThickness;
+  if (tool === "fill") return brushThickness;
   return brushThickness;
 }
 
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia(query).matches : false
-  );
-  useEffect(() => {
-    const m = window.matchMedia(query);
-    const onChange = () => setMatches(m.matches);
-    m.addEventListener("change", onChange);
-    setMatches(m.matches);
-    return () => m.removeEventListener("change", onChange);
-  }, [query]);
-  return matches;
-}
+const FILL_COLOR_MATCH_TOL = 28;
 
 export default function DrawPage() {
   const dispatch = useDispatch();
@@ -91,9 +123,6 @@ export default function DrawPage() {
   const imgRef = useRef(null);
   const submitOnceRef = useRef(false);
   const [baseSize, setBaseSize] = useState(null);
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
-  const [mobileHighlightDone, setMobileHighlightDone] = useState(false);
 
   const [splitCtx, setSplitCtx] = useState(null);
   const [pairBlocked, setPairBlocked] = useState(false);
@@ -111,7 +140,7 @@ export default function DrawPage() {
 
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [tool, setTool] = useState("brush");
-  const [hsv, setHsvState] = useState({ h: 0, s: 0, v: 0 });
+  const [hsv, setHsvState] = useState({ h: 0, s: 1, v: 1 });
   const { h, s, v } = hsv;
   const [pencilThickness, setPencilThickness] = useState(3);
   const [brushThickness, setBrushThickness] = useState(8);
@@ -128,30 +157,6 @@ export default function DrawPage() {
     setHsvState((prev) => ({ ...prev, ...next }));
   }, []);
 
-  const onMobileAwareColorChange = useCallback(
-    (patch) => {
-      setHsv(patch);
-      if (isMobile) setMobileHighlightDone(true);
-    },
-    [setHsv, isMobile]
-  );
-
-  const closeMobileTools = useCallback(() => {
-    setMobileToolsOpen(false);
-    setMobileHighlightDone(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileToolsOpen(false);
-      setMobileHighlightDone(false);
-    }
-  }, [isMobile]);
-
-  useEffect(() => {
-    if (mobileToolsOpen) setMobileHighlightDone(false);
-  }, [mobileToolsOpen]);
-
   useEffect(() => {
     dispatch(setBackButtonUrl("/get-pairing"));
   }, [dispatch]);
@@ -159,10 +164,35 @@ export default function DrawPage() {
   useEffect(() => {
     if (!themeData) return;
     const t = parseInt(themeData.wmlQuestionTimerSeconds, 10);
-    const sec = Number.isNaN(t) ? 0 : Math.max(0, t);
-    if (sec > 0) setSecondsLeft(sec);
+    const durationSec = Number.isNaN(t) ? 0 : Math.max(0, t);
+    if (durationSec <= 0) {
+      setSecondsLeft(0);
+      setTimerInitialized(true);
+      return;
+    }
+    if (!splitCtx?.pairId || !user?.userId) return;
+
+    const storageKey = drawTimerStorageKey(
+      user.sessionId,
+      user.userId,
+      splitCtx.pairId,
+      splitCtx.side
+    );
+    const now = Date.now();
+    const existingDeadline = readDrawTimerDeadline(storageKey);
+    if (existingDeadline != null && existingDeadline > now) {
+      const remaining = Math.max(
+        0,
+        Math.ceil((existingDeadline - now) / 1000)
+      );
+      setSecondsLeft(remaining);
+    } else {
+      const deadlineMs = now + durationSec * 1000;
+      setSecondsLeft(durationSec);
+      writeDrawTimerDeadline(storageKey, deadlineMs);
+    }
     setTimerInitialized(true);
-  }, [themeData]);
+  }, [themeData, splitCtx, user]);
 
   useEffect(() => {
     let raw = location.state;
@@ -246,6 +276,27 @@ export default function DrawPage() {
     return () => clearTimeout(id);
   }, [timerEnabled, secondsLeft]);
 
+  useEffect(() => {
+    if (
+      !timerEnabled ||
+      !timerInitialized ||
+      !splitCtx?.pairId ||
+      !user?.userId
+    )
+      return;
+    const storageKey = drawTimerStorageKey(
+      user.sessionId,
+      user.userId,
+      splitCtx.pairId,
+      splitCtx.side
+    );
+    if (secondsLeft <= 0) {
+      clearDrawTimer(storageKey);
+      return;
+    }
+    writeDrawTimerDeadline(storageKey, Date.now() + secondsLeft * 1000);
+  }, [timerEnabled, timerInitialized, secondsLeft, splitCtx, user]);
+
   const buildCompositeBlob = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
@@ -302,6 +353,14 @@ export default function DrawPage() {
       fd.append("side", splitCtx.side);
       fd.append("userId", String(user.userId));
       await uploadSplitCanvasDrawing(token, fd);
+      clearDrawTimer(
+        drawTimerStorageKey(
+          user.sessionId,
+          user.userId,
+          splitCtx.pairId,
+          splitCtx.side
+        )
+      );
       navigate("/gallery", { replace: true });
     } catch (e) {
       console.error(e);
@@ -350,6 +409,81 @@ export default function DrawPage() {
     historyIndexRef.current = next.length - 1;
     setHistoryUi((n) => n + 1);
   }, []);
+
+  const canvasCoords = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }, []);
+
+  const applyFill = useCallback(
+    (e) => {
+      const canvas = canvasRef.current;
+      const img = imgRef.current;
+      if (!canvas || !img?.complete || !ready) return;
+      const w = canvas.width;
+      const ch = canvas.height;
+      if (w <= 0 || ch <= 0) return;
+
+      const { x, y } = canvasCoords(e);
+      const sx = Math.max(0, Math.min(w - 1, Math.floor(x)));
+      const sy = Math.max(0, Math.min(ch - 1, Math.floor(y)));
+
+      const tmp = document.createElement("canvas");
+      tmp.width = w;
+      tmp.height = ch;
+      const tx = tmp.getContext("2d");
+      if (!tx) return;
+      tx.drawImage(img, 0, 0, w, ch);
+      tx.drawImage(canvas, 0, 0);
+      const composite = tx.getImageData(0, 0, w, ch);
+
+      const { mask, count, target } = floodFillMask(
+        composite,
+        sx,
+        sy,
+        FILL_COLOR_MATCH_TOL
+      );
+      if (!target || count === 0) return;
+
+      const { r: fr, g: fg, b: fb } = hsvToRgb(h, s, v);
+      if (
+        rgbWithinTolerance(
+          fr,
+          fg,
+          fb,
+          target.r,
+          target.g,
+          target.b,
+          FILL_COLOR_MATCH_TOL
+        )
+      ) {
+        return;
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const overlayData = ctx.getImageData(0, 0, w, ch);
+      const od = overlayData.data;
+      for (let i = 0; i < mask.length; i++) {
+        if (!mask[i]) continue;
+        const p = i * 4;
+        od[p] = fr;
+        od[p + 1] = fg;
+        od[p + 2] = fb;
+        od[p + 3] = 255;
+      }
+      ctx.putImageData(overlayData, 0, 0);
+      commitState();
+    },
+    [ready, canvasCoords, h, s, v, commitState]
+  );
 
   const restoreHistoryIndex = useCallback((i) => {
     const canvas = canvasRef.current;
@@ -448,24 +582,18 @@ export default function DrawPage() {
     return () => ro.disconnect();
   }, [layoutCanvasSquare]);
 
-  const canvasCoords = useCallback((e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
-  }, []);
-
   const handlePointerDown = useCallback(
     (e) => {
       if (!ready) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
       e.preventDefault();
+
+      if (tool === "fill") {
+        applyFill(e);
+        return;
+      }
+
       canvas.setPointerCapture(e.pointerId);
 
       const { x, y } = canvasCoords(e);
@@ -494,11 +622,12 @@ export default function DrawPage() {
       ctx.stroke();
       ctx.restore();
     },
-    [ready, tool, color, canvasCoords, pencilThickness, brushThickness]
+    [ready, tool, color, canvasCoords, pencilThickness, brushThickness, applyFill]
   );
 
   const handlePointerMove = useCallback(
     (e) => {
+      if (tool === "fill") return;
       if (!drawingRef.current || !ready) return;
       e.preventDefault();
       const canvas = canvasRef.current;
@@ -564,6 +693,7 @@ export default function DrawPage() {
   );
 
   const usePencilThicknessRange = tool === "pencil";
+  const showThicknessSlider = tool !== "fill";
   const thicknessValue = usePencilThicknessRange
     ? pencilThickness
     : brushThickness;
@@ -583,7 +713,6 @@ export default function DrawPage() {
     }
   };
 
-  const showToolbar = !isMobile || mobileToolsOpen;
   const baseImageSrc =
     baseImageRetryCount > 0
       ? `${baseImageUrl}${baseImageUrl.includes("?") ? "&" : "?"}r=${baseImageRetryCount}`
@@ -638,39 +767,8 @@ export default function DrawPage() {
         </span>
       </div>
 
-      {isMobile && mobileToolsOpen && (
-        <button
-          type="button"
-          className="draw-page__backdrop"
-          aria-label="Close tools"
-          onClick={closeMobileTools}
-        />
-      )}
-
       <div className="draw-page__frame">
-        {showToolbar && (
-          <aside
-            className={`draw-page__toolbar${
-              isMobile ? " draw-page__toolbar--sheet" : ""
-            }`}
-            aria-label="Drawing tools"
-          >
-            {isMobile && (
-              <div className="draw-page__sheet-header">
-                <span className="draw-page__sheet-title">Tools</span>
-                <button
-                  type="button"
-                  className={`draw-page__sheet-done${
-                    mobileHighlightDone
-                      ? " draw-page__sheet-done--highlight"
-                      : ""
-                  }`}
-                  onClick={closeMobileTools}
-                >
-                  Done
-                </button>
-              </div>
-            )}
+        <aside className="draw-page__toolbar" aria-label="Drawing tools">
             <div className="draw-page__toolbar-top">
               <button
                 type="button"
@@ -703,9 +801,7 @@ export default function DrawPage() {
                 <div className="draw-page__wheel-stack">
                   <ColorWheel
                     h={h}
-                    s={s}
-                    v={v}
-                    onChange={onMobileAwareColorChange}
+                    onChange={setHsv}
                     size={176}
                   />
                   <span
@@ -726,10 +822,7 @@ export default function DrawPage() {
                       tool === "eraser" ? " draw-page__tool-icon--active" : ""
                     }`}
                     aria-pressed={tool === "eraser"}
-                    onClick={() => {
-                      setTool("eraser");
-                      if (isMobile) setMobileHighlightDone(true);
-                    }}
+                    onClick={() => setTool("eraser")}
                     aria-label="Eraser"
                   >
                     <img src={eraserIcon} alt="" />
@@ -740,10 +833,7 @@ export default function DrawPage() {
                       tool === "pencil" ? " draw-page__tool-icon--active" : ""
                     }`}
                     aria-pressed={tool === "pencil"}
-                    onClick={() => {
-                      setTool("pencil");
-                      if (isMobile) setMobileHighlightDone(true);
-                    }}
+                    onClick={() => setTool("pencil")}
                     aria-label="Pencil"
                   >
                     <img src={pencilIcon} alt="" />
@@ -754,41 +844,50 @@ export default function DrawPage() {
                       tool === "brush" ? " draw-page__tool-icon--active" : ""
                     }`}
                     aria-pressed={tool === "brush"}
-                    onClick={() => {
-                      setTool("brush");
-                      if (isMobile) setMobileHighlightDone(true);
-                    }}
+                    onClick={() => setTool("brush")}
                     aria-label="Brush"
                   >
                     <img src={brushIcon} alt="" />
+                  </button>
+                  <button
+                    type="button"
+                    className={`draw-page__tool-icon${
+                      tool === "fill" ? " draw-page__tool-icon--active" : ""
+                    }`}
+                    aria-pressed={tool === "fill"}
+                    onClick={() => setTool("fill")}
+                    aria-label="Fill"
+                    title="Paint bucket"
+                  >
+                    <img src={fillIcon} alt="" />
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="draw-page__thickness">
-              <span className="draw-page__thickness-label">
-                {thicknessValue}px
-              </span>
-              <input
-                type="range"
-                className="draw-page__range draw-page__range--compact"
-                min={1}
-                max={thicknessMax}
-                value={thicknessValue}
-                onChange={(e) => {
-                  onThicknessChange(Number(e.target.value));
-                  if (isMobile) setMobileHighlightDone(true);
-                }}
-                aria-label={
-                  usePencilThicknessRange
-                    ? "Pencil thickness"
-                    : "Brush and eraser thickness"
-                }
-              />
-            </div>
-          </aside>
-        )}
+            {showThicknessSlider && (
+              <div className="draw-page__thickness">
+                <span className="draw-page__thickness-label">
+                  {thicknessValue}px
+                </span>
+                <input
+                  type="range"
+                  className="draw-page__range draw-page__range--compact"
+                  min={1}
+                  max={thicknessMax}
+                  value={thicknessValue}
+                  onChange={(e) =>
+                    onThicknessChange(Number(e.target.value))
+                  }
+                  aria-label={
+                    usePencilThicknessRange
+                      ? "Pencil thickness"
+                      : "Brush and eraser thickness"
+                  }
+                />
+              </div>
+            )}
+        </aside>
 
         <div className="draw-page__canvas-wrap" ref={wrapRef}>
           {baseImageLoadError && (
@@ -805,27 +904,6 @@ export default function DrawPage() {
                 Retry
               </button>
             </div>
-          )}
-          {isMobile && !mobileToolsOpen && (
-            <button
-              type="button"
-              className="draw-page__edit-fab"
-              onClick={() => setMobileToolsOpen(true)}
-              aria-label="Edit colors and tools"
-            >
-              <svg
-                className="draw-page__edit-fab-icon"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  fill="currentColor"
-                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.41l-2.34-2.34a1.003 1.003 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-                />
-              </svg>
-            </button>
           )}
           <div className="draw-page__canvas-stack">
             {/* crossOrigin + S3 CORS (GET) for this app origin keeps the canvas exportable (toBlob). */}

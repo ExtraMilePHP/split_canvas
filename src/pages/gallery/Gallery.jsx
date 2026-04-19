@@ -4,10 +4,10 @@ import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
 import {
   fetchSplitCanvasGallery,
+  getSplitCanvasGalleryStreamUrl,
   postSplitCanvasReaction,
 } from "../../functions/splitCanvasApi";
 import { sendReport } from "../../functions/sendReport";
-import Swal from "sweetalert2";
 import partImg from "../../img/assets/part-2.png";
 import "./gallery.css";
 
@@ -21,6 +21,38 @@ function withCacheBust(url, token) {
   if (!url) return url;
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}cb=${encodeURIComponent(String(token))}`;
+}
+
+const MAX_FILENAME_LABEL_LEN = 50;
+
+const PAGE_SIZE = 10;
+
+/** Safe segment for SplitCanvas_left_right filenames (Windows/macOS/Linux). */
+function sanitizeFileLabel(name) {
+  const raw = String(name ?? "").trim();
+  const placeholder = "Player";
+  if (!raw || raw === "—") {
+    return placeholder;
+  }
+  const cleaned = raw
+    .replace(/[/\\:*?"<>|]+/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  const out = cleaned || placeholder;
+  return out.length > MAX_FILENAME_LABEL_LEN
+    ? out.slice(0, MAX_FILENAME_LABEL_LEN)
+    : out;
+}
+
+function splitCanvasDownloadBase(pair) {
+  const left = sanitizeFileLabel(pair.left_user_name);
+  const right = sanitizeFileLabel(pair.right_user_name);
+  return `SplitCanvas_${left}_${right}`;
+}
+
+function buildSplitCanvasDownloadName(pair) {
+  return `${splitCanvasDownloadBase(pair)}.png`;
 }
 
 function DownloadIcon() {
@@ -165,15 +197,14 @@ function ReactionBarFixed({ pair, onReact, disabled }) {
   );
 }
 
-async function mergePairDownload(pair) {
+async function mergePairDownload(pair, showNotice) {
   const lk = pair.left_s3_key;
   const rk = pair.right_s3_key;
   if (!lk || !rk) {
-    Swal.fire(
-      "Not ready yet",
-      "Both sides need to be submitted before download.",
-      "warning"
-    );
+    showNotice({
+      title: "Not ready yet",
+      message: "Both sides need to be submitted before download.",
+    });
     return;
   }
   const load = (key) =>
@@ -223,30 +254,31 @@ async function mergePairDownload(pair) {
     ctx.drawImage(r, l.naturalWidth, 0);
     const blob = await toBlob(c);
     const objectUrl = URL.createObjectURL(blob);
-    triggerDirectDownload(objectUrl, `split-canvas-${pair.id}.png`);
+    triggerDirectDownload(objectUrl, buildSplitCanvasDownloadName(pair));
     URL.revokeObjectURL(objectUrl);
   } catch {
     // Frontend-only fallback when canvas export is blocked by CORS.
+    const base = splitCanvasDownloadBase(pair);
     triggerDirectDownload(
       withCacheBust(s3u(lk), `${pair.id}-left`),
-      `split-canvas-${pair.id}-left.png`
+      `${base}-left.png`
     );
     window.setTimeout(() => {
       triggerDirectDownload(
         withCacheBust(s3u(rk), `${pair.id}-right`),
-        `split-canvas-${pair.id}-right.png`
+        `${base}-right.png`
       );
     }, 120);
 
-    Swal.fire(
-      "Merged download blocked",
-      "CORS blocked merged export. Downloaded/opened left and right images separately.",
-      "info"
-    );
+    showNotice({
+      title: "Merged download blocked",
+      message:
+        "CORS blocked merged export. Downloaded/opened left and right images separately.",
+    });
   }
 }
 
-function GalleryCard({ pair, onReact, reactBusy }) {
+function GalleryCard({ pair, onReact, reactBusy, onShowNotice }) {
   const leftName = pair.left_user_name || "—";
   const rightName = pair.right_user_name || "—";
   const leftSrc = pair.left_s3_key
@@ -293,7 +325,7 @@ function GalleryCard({ pair, onReact, reactBusy }) {
           type="button"
           className="gallery-card__download"
           aria-label="Download merged image"
-          onClick={() => mergePairDownload(pair)}
+          onClick={() => mergePairDownload(pair, onShowNotice)}
         >
           <DownloadIcon />
         </button>
@@ -319,17 +351,29 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [reactBusy, setReactBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     dispatch(setBackButtonUrl("/get-pairing"));
   }, [dispatch]);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(pairs.length / PAGE_SIZE));
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [pairs.length]);
+
+  const load = useCallback(async (opts) => {
+    const silent =
+      opts && typeof opts === "object" && opts.silent === true;
     if (!token || !themeName) {
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
-    setErr(null);
+    if (!silent) {
+      setErr(null);
+      setLoading(true);
+    }
     try {
       const data = await fetchSplitCanvasGallery(
         token,
@@ -338,15 +382,28 @@ export default function Gallery() {
       );
       setPairs(Array.isArray(data.pairs) ? data.pairs : []);
     } catch (e) {
-      setErr(e.message || "Failed to load gallery");
+      if (!silent) setErr(e.message || "Failed to load gallery");
+      else console.warn("gallery silent refresh failed", e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token, themeName, user?.userId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!token || !themeName) return undefined;
+    const url = getSplitCanvasGalleryStreamUrl(token, String(themeName));
+    const es = new EventSource(url);
+    es.onmessage = () => {
+      void load({ silent: true });
+    };
+    return () => {
+      es.close();
+    };
+  }, [token, themeName, load]);
 
   const syncReport = useCallback(
     (pairRows) => {
@@ -408,14 +465,47 @@ export default function Gallery() {
     }
   };
 
+  const totalCount = pairs.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const rangeStart = (page - 1) * PAGE_SIZE;
+  const visiblePairs = pairs.slice(rangeStart, rangeStart + PAGE_SIZE);
+  const rangeFrom = totalCount ? rangeStart + 1 : 0;
+  const rangeTo = totalCount ? Math.min(rangeStart + PAGE_SIZE, totalCount) : 0;
+
   return (
     <div className="gallery-page">
+      {notice && (
+        <div
+          className="gallery-notice__overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="gallery-notice-title"
+          onClick={() => setNotice(null)}
+        >
+          <div
+            className="gallery-notice__box"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="gallery-notice-title" className="gallery-notice__title">
+              {notice.title}
+            </h2>
+            <p className="gallery-notice__text">{notice.message}</p>
+            <button
+              type="button"
+              className="gallery-notice__ok"
+              onClick={() => setNotice(null)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       <h1 className="gallery-page__title">GALLERY</h1>
       {loading && <p className="gallery-page__hint">Loading…</p>}
       {err && (
         <p className="gallery-page__hint" style={{ color: "#b91c1c" }}>
           {err}{" "}
-          <button type="button" onClick={load}>
+          <button type="button" onClick={() => load()}>
             Retry
           </button>
         </p>
@@ -424,15 +514,43 @@ export default function Gallery() {
         <p className="gallery-page__hint">No entries yet.</p>
       )}
       <div className="gallery-page__grid">
-        {pairs.map((item) => (
+        {visiblePairs.map((item) => (
           <GalleryCard
             key={item.id}
             pair={item}
             onReact={onReact}
             reactBusy={reactBusy}
+            onShowNotice={setNotice}
           />
         ))}
       </div>
+      {totalCount > 0 && (
+        <nav
+          className="gallery-page__pagination"
+          aria-label="Gallery pagination"
+        >
+          <button
+            type="button"
+            className="gallery-page__page-btn"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          <span className="gallery-page__page-meta">
+            Page {page} of {totalPages} · Showing {rangeFrom}–{rangeTo} of{" "}
+            {totalCount}
+          </span>
+          <button
+            type="button"
+            className="gallery-page__page-btn"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
