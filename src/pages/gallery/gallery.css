@@ -64,15 +64,6 @@
   padding-top: 0.5rem;
 }
 
-.gallery-page__page-meta {
-  font-family: inherit;
-  font-size: clamp(0.82rem, 2.2vw, 0.95rem);
-  font-weight: 600;
-  color: #6b4a2a;
-  text-align: center;
-  min-width: min(100%, 16rem);
-}
-
 .gallery-page__page-btn {
   font-family: inherit;
   font-weight: 700;
@@ -98,6 +89,26 @@
 .gallery-page__page-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.gallery-page__page-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.gallery-page__page-btn--number {
+  min-width: 2.15rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.gallery-page__page-btn--active {
+  background: #c18346;
+  color: #fffaf0;
+  border-color: #c18346;
+  box-shadow: 0 3px 12px rgba(80, 50, 20, 0.2);
 }
 
 .gallery-card {

@@ -4,7 +4,6 @@ import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
 import {
   fetchSplitCanvasGallery,
-  getSplitCanvasGalleryStreamUrl,
   postSplitCanvasReaction,
 } from "../../functions/splitCanvasApi";
 import { sendReport } from "../../functions/sendReport";
@@ -395,13 +394,13 @@ export default function Gallery() {
 
   useEffect(() => {
     if (!token || !themeName) return undefined;
-    const url = getSplitCanvasGalleryStreamUrl(token, String(themeName));
-    const es = new EventSource(url);
-    es.onmessage = () => {
+
+    const interval = window.setInterval(() => {
       void load({ silent: true });
-    };
+    }, 10000);
+
     return () => {
-      es.close();
+      window.clearInterval(interval);
     };
   }, [token, themeName, load]);
 
@@ -469,8 +468,7 @@ export default function Gallery() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const rangeStart = (page - 1) * PAGE_SIZE;
   const visiblePairs = pairs.slice(rangeStart, rangeStart + PAGE_SIZE);
-  const rangeFrom = totalCount ? rangeStart + 1 : 0;
-  const rangeTo = totalCount ? Math.min(rangeStart + PAGE_SIZE, totalCount) : 0;
+  const pageNumbers = Array.from({ length: totalPages }, (_, idx) => idx + 1);
 
   return (
     <div className="gallery-page">
@@ -537,10 +535,23 @@ export default function Gallery() {
           >
             Previous
           </button>
-          <span className="gallery-page__page-meta">
-            Page {page} of {totalPages} · Showing {rangeFrom}–{rangeTo} of{" "}
-            {totalCount}
-          </span>
+          <div className="gallery-page__page-numbers" aria-label="Page numbers">
+            {pageNumbers.map((num) => (
+              <button
+                key={num}
+                type="button"
+                className={
+                  num === page
+                    ? "gallery-page__page-btn gallery-page__page-btn--number gallery-page__page-btn--active"
+                    : "gallery-page__page-btn gallery-page__page-btn--number"
+                }
+                onClick={() => setPage(num)}
+                aria-current={num === page ? "page" : undefined}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className="gallery-page__page-btn"
