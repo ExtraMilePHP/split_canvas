@@ -295,6 +295,34 @@
   pointer-events: auto;
 }
 
+.draw-page__canvas--hide-native-cursor {
+  cursor: none;
+}
+
+.draw-page__cursor-overlay {
+  position: absolute;
+  transform: translate(-20%, -80%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.draw-page__cursor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 1px 4px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 61, 30, 0.35);
+  background: rgba(255, 251, 243, 0.92);
+  color: #5c3d1e;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 0 1px 6px rgba(60, 40, 20, 0.18);
+}
+
 /* Color wheel */
 .draw-color-wheel {
   position: relative;

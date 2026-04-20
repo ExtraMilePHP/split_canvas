@@ -145,6 +145,8 @@ export default function DrawPage() {
   const [pencilThickness, setPencilThickness] = useState(3);
   const [brushThickness, setBrushThickness] = useState(8);
   const [ready, setReady] = useState(false);
+  const [cursorUi, setCursorUi] = useState({ visible: false, x: 0, y: 0 });
+  const [supportsFinePointer, setSupportsFinePointer] = useState(false);
 
   const historyRef = useRef([]);
   const historyIndexRef = useRef(-1);
@@ -152,6 +154,13 @@ export default function DrawPage() {
   const lastPointRef = useRef({ x: 0, y: 0 });
 
   const color = useMemo(() => hsvToHex(h, s, v), [h, s, v]);
+  const cursorIcon = useMemo(() => {
+    if (tool === "pencil") return "✎";
+    if (tool === "brush") return "🖌";
+    if (tool === "eraser") return "⌫";
+    if (tool === "fill") return "🪣";
+    return "✎";
+  }, [tool]);
 
   const setHsv = useCallback((next) => {
     setHsvState((prev) => ({ ...prev, ...next }));
@@ -160,6 +169,23 @@ export default function DrawPage() {
   useEffect(() => {
     dispatch(setBackButtonUrl("/get-pairing"));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+    const mql = window.matchMedia("(pointer: fine)");
+    const sync = () => setSupportsFinePointer(Boolean(mql.matches));
+    sync();
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", sync);
+      return () => mql.removeEventListener("change", sync);
+    }
+    if (typeof mql.addListener === "function") {
+      mql.addListener(sync);
+      return () => mql.removeListener(sync);
+    }
+  }, []);
 
   useEffect(() => {
     if (!themeData) return;
@@ -588,6 +614,8 @@ export default function DrawPage() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       e.preventDefault();
+      const { x, y } = canvasCoords(e);
+      setCursorUi({ visible: true, x, y });
 
       if (tool === "fill") {
         applyFill(e);
@@ -595,8 +623,6 @@ export default function DrawPage() {
       }
 
       canvas.setPointerCapture(e.pointerId);
-
-      const { x, y } = canvasCoords(e);
 
       drawingRef.current = true;
       lastPointRef.current = { x, y };
@@ -627,12 +653,17 @@ export default function DrawPage() {
 
   const handlePointerMove = useCallback(
     (e) => {
-      if (tool === "fill") return;
-      if (!drawingRef.current || !ready) return;
-      e.preventDefault();
       const canvas = canvasRef.current;
       if (!canvas) return;
       const { x, y } = canvasCoords(e);
+      setCursorUi((prev) => ({
+        visible: true,
+        x,
+        y,
+      }));
+      if (tool === "fill") return;
+      if (!drawingRef.current || !ready) return;
+      e.preventDefault();
       const w = strokeWidthForTool(tool, pencilThickness, brushThickness);
       const ctx = canvas.getContext("2d");
       const last = lastPointRef.current;
@@ -681,7 +712,16 @@ export default function DrawPage() {
 
   const handlePointerLeave = useCallback(() => {
     endStroke();
+    setCursorUi((prev) => ({ ...prev, visible: false }));
   }, [endStroke]);
+
+  const handlePointerEnter = useCallback(
+    (e) => {
+      const { x, y } = canvasCoords(e);
+      setCursorUi({ visible: true, x, y });
+    },
+    [canvasCoords]
+  );
 
   const undoDisabled = useMemo(
     () => historyIndexRef.current <= 0,
@@ -929,7 +969,11 @@ export default function DrawPage() {
             />
             <canvas
               ref={canvasRef}
-              className="draw-page__canvas draw-page__canvas--overlay"
+              className={`draw-page__canvas draw-page__canvas--overlay${
+                supportsFinePointer && cursorUi.visible
+                  ? " draw-page__canvas--hide-native-cursor"
+                  : ""
+              }`}
               style={
                 baseSize
                   ? { width: baseSize.cw, height: baseSize.ch }
@@ -937,10 +981,23 @@ export default function DrawPage() {
               }
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
+              onPointerEnter={handlePointerEnter}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
               onPointerLeave={handlePointerLeave}
             />
+            {supportsFinePointer && cursorUi.visible && (
+              <div
+                className="draw-page__cursor-overlay"
+                style={{
+                  left: `${cursorUi.x}px`,
+                  top: `${cursorUi.y}px`,
+                }}
+                aria-hidden="true"
+              >
+                <span className="draw-page__cursor-icon">{cursorIcon}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
