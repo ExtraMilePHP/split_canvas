@@ -296,7 +296,7 @@ const QuestionsTable = () => {
                 disabled={saving || sets.length >= MAX_SETS}
                 onClick={addPair}
               >
-                {saving ? "Working…" : "Add set"}
+                {saving ? "Working…" : "Add"}
               </button>
             </div>
 

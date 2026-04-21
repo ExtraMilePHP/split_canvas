@@ -1,120 +1,126 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 
 const DEFAULT_SIZE = 200;
-const RING_GAP_REF = 4;
 
-/** Top of wheel (deg from atan2(dx,-dy)); must match conic gradient white wedge. */
-const WHITE_SECTOR_CENTER_DEG = 0;
-/** Half angular width of the white chip on the outer ring (total span = 2 × this). */
-const WHITE_SECTOR_HALF_WIDTH_DEG = 9;
+/** Inner edge of hue ring, as fraction of outer radius (center to wheel edge). */
+const RING_INNER_FRAC = 0.76;
+/** Inner shade disc radius, as fraction of outer radius (matches inset (1-INNER)/2). */
+const INNER_DISC_FRAC = 0.68;
 
-const RING_W_START =
-  (WHITE_SECTOR_CENTER_DEG - WHITE_SECTOR_HALF_WIDTH_DEG + 360) % 360;
-const RING_W_END =
-  (WHITE_SECTOR_CENTER_DEG + WHITE_SECTOR_HALF_WIDTH_DEG + 360) % 360;
+function clamp01(n) {
+  return Math.max(0, Math.min(1, n));
+}
 
-/** Inner radius of the hue ring (hole). Matches mask: outerR * 0.52 + gap. */
-function ringHoleRadiusPx(side, designSize) {
+/**
+ * shade: 0 = top/white, 0.5 = pure hue, 1 = bottom/black
+ * Returns { s, v } in [0,1] matching the vertical gradient.
+ */
+function shadeToHsv(shade) {
+  if (shade <= 0.5) {
+    return { s: shade * 2, v: 1 };
+  }
+  return { s: 1, v: (1 - shade) * 2 };
+}
+
+/**
+ * Inverse: given current HSV, return the shade position (0–1).
+ * v < 1  → lower (dim) branch: shade = 1 − v/2
+ * v == 1 → upper (tint) branch: shade = s/2
+ */
+function hsvToShade(s, v) {
+  return v < 1 ? 1 - v / 2 : s / 2;
+}
+
+function pointerToMetrics(el, clientX, clientY) {
+  const rect = el.getBoundingClientRect();
+  const side = Math.min(rect.width, rect.height);
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = clientX - cx;
+  const dy = clientY - cy;
+  const dist = Math.hypot(dx, dy);
   const outerR = side / 2;
-  const scale = side / designSize;
-  return outerR * 0.52 + RING_GAP_REF * scale;
+  const ringInnerR = RING_INNER_FRAC * outerR;
+  const innerR = INNER_DISC_FRAC * outerR;
+  return { dx, dy, dist, outerR, ringInnerR, innerR };
 }
 
-/**
- * True if deg (0–360, same convention as atan2(dx,-dy)) lies in the white sector.
- */
-function angleInWhiteSector(deg) {
-  const c = WHITE_SECTOR_CENTER_DEG;
-  const hw = WHITE_SECTOR_HALF_WIDTH_DEG;
-  let a = deg - c;
-  a = ((a + 540) % 360) - 180;
-  return Math.abs(a) <= hw;
+function innerIndicatorPct(s, v) {
+  const shade = hsvToShade(clamp01(s), clamp01(v));
+  return {
+    innerDotX: 50,
+    innerDotY: 50 + INNER_DISC_FRAC * 50 * (2 * shade - 1),
+  };
 }
 
-/**
- * Conic stops aligned with {@link angleInWhiteSector}: white from RING_W_START to RING_W_END clockwise.
- * Built in JS so hit-testing and pixels stay in sync.
- */
-function hueRingConicGradient() {
-  const wEnd = RING_W_END;
-  const wStart = RING_W_START;
-  return `conic-gradient(
-    hsl(0, 100%, 50%) ${wEnd}deg,
-    hsl(60, 100%, 50%) ${wEnd + 60}deg,
-    hsl(120, 100%, 50%) ${wEnd + 120}deg,
-    hsl(180, 100%, 50%) ${wEnd + 180}deg,
-    hsl(240, 100%, 50%) ${wEnd + 240}deg,
-    hsl(300, 100%, 50%) ${wEnd + 300}deg,
-    hsl(330, 100%, 50%) 330deg,
-    #fff ${wStart}deg,
-    #fff 360deg
-  )`;
-}
-
-/**
- * Hue on outer ring; dedicated white sector on the ring (not the center hole).
- *
- * @param {{ h: number, onChange: (next: { h?: number, s?: number, v?: number }) => void, size?: number }} props
- */
-export default function ColorWheel({ h, onChange, size = DEFAULT_SIZE }) {
+export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
   const wrapRef = useRef(null);
-  const draggingRef = useRef(null);
+  const dragModeRef = useRef(null);
 
-  const ringBackground = useMemo(() => hueRingConicGradient(), []);
+  const ringInnerPct = RING_INNER_FRAC * 100;
+  const innerInsetPct = ((1 - INNER_DISC_FRAC) / 2) * 100;
 
-  const outerRRef = size / 2;
-  const ringInnerRRef = ringHoleRadiusPx(size, size);
+  const updateHue = useCallback(
+    (dx, dy) => {
+      let deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
+      if (deg < 0) deg += 360;
+      onChange({ h: deg });
+    },
+    [onChange]
+  );
+
+  const updateInnerShade = useCallback(
+    (dy, innerR) => {
+      const shade = clamp01((dy + innerR) / (2 * innerR));
+      onChange(shadeToHsv(shade));
+    },
+    [onChange]
+  );
 
   const handlePointer = useCallback(
     (clientX, clientY) => {
       const el = wrapRef.current;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const side = Math.min(rect.width, rect.height);
-      const outerR = side / 2;
-      const ringInnerR = ringHoleRadiusPx(side, size);
-      const scale = side / size;
-      const ringOuterSlop = 4 * scale;
+      const m = pointerToMetrics(el, clientX, clientY);
 
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = clientX - cx;
-      const dy = clientY - cy;
-      const dist = Math.hypot(dx, dy);
+      const ringHit = m.dist >= m.ringInnerR && m.dist <= m.outerR * 1.03;
+      const innerHit = m.dist <= m.innerR;
 
-      if (dist >= ringInnerR && dist <= outerR + ringOuterSlop) {
-        let deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
-        if (deg < 0) deg += 360;
+      const mode = dragModeRef.current;
+      if (mode === "ring") {
+        updateHue(m.dx, m.dy);
+        return;
+      }
+      if (mode === "inner") {
+        updateInnerShade(m.dy, m.innerR);
+        return;
+      }
 
-        if (angleInWhiteSector(deg)) {
-          onChange({
-            h: WHITE_SECTOR_CENTER_DEG,
-            s: 0,
-            v: 1,
-          });
-          return;
-        }
-
-        onChange({ h: deg, s: 1, v: 1 });
+      if (ringHit) {
+        dragModeRef.current = "ring";
+        updateHue(m.dx, m.dy);
+      } else if (innerHit) {
+        dragModeRef.current = "inner";
+        updateInnerShade(m.dy, m.innerR);
       }
     },
-    [onChange, size]
+    [updateHue, updateInnerShade]
   );
 
   const onPointerDown = (e) => {
     e.preventDefault();
     wrapRef.current?.setPointerCapture(e.pointerId);
-    draggingRef.current = true;
+    dragModeRef.current = null;
     handlePointer(e.clientX, e.clientY);
   };
 
   const onPointerMove = (e) => {
-    if (!draggingRef.current) return;
+    if (!dragModeRef.current) return;
     handlePointer(e.clientX, e.clientY);
   };
 
   const onPointerUp = (e) => {
-    draggingRef.current = false;
+    dragModeRef.current = null;
     try {
       wrapRef.current?.releasePointerCapture(e.pointerId);
     } catch {
@@ -122,12 +128,11 @@ export default function ColorWheel({ h, onChange, size = DEFAULT_SIZE }) {
     }
   };
 
-  const hueRad = (h * Math.PI) / 180;
-  const ringMidR = (ringInnerRRef + outerRRef) / 2;
-  const ringDotX = 50 + (ringMidR / outerRRef) * 50 * Math.sin(hueRad);
-  const ringDotY = 50 - (ringMidR / outerRRef) * 50 * Math.cos(hueRad);
-
-  const maskInnerPx = size * 0.26;
+  const hueRad = (((h % 360) + 360) % 360) * (Math.PI / 180);
+  const ringMidFrac = (RING_INNER_FRAC + 1) / 2;
+  const ringDotX = 50 + ringMidFrac * 50 * Math.sin(hueRad);
+  const ringDotY = 50 - ringMidFrac * 50 * Math.cos(hueRad);
+  const { innerDotX, innerDotY } = innerIndicatorPct(s, v);
 
   return (
     <div
@@ -136,7 +141,9 @@ export default function ColorWheel({ h, onChange, size = DEFAULT_SIZE }) {
       style={{
         width: size,
         height: size,
-        "--cw-mask-inner": `${maskInnerPx}px`,
+        "--cw-hue": `${((h % 360) + 360) % 360}`,
+        "--cw-ring-inner-pct": `${ringInnerPct}%`,
+        "--cw-inner-inset-pct": `${innerInsetPct}%`,
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -144,14 +151,15 @@ export default function ColorWheel({ h, onChange, size = DEFAULT_SIZE }) {
       onPointerCancel={onPointerUp}
       role="presentation"
     >
-      <div
-        className="draw-color-wheel__ring"
-        style={{ background: ringBackground }}
-        aria-hidden="true"
-      />
+      <div className="draw-color-wheel__ring" aria-hidden="true" />
+      <div className="draw-color-wheel__inner" aria-hidden="true" />
       <span
         className="draw-color-wheel__dot draw-color-wheel__dot--ring"
         style={{ left: `${ringDotX}%`, top: `${ringDotY}%` }}
+      />
+      <span
+        className="draw-color-wheel__dot draw-color-wheel__dot--inner"
+        style={{ left: `${innerDotX}%`, top: `${innerDotY}%` }}
       />
     </div>
   );

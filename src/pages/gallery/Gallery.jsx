@@ -54,6 +54,11 @@ function buildSplitCanvasDownloadName(pair) {
   return `${splitCanvasDownloadBase(pair)}.png`;
 }
 
+/** iPhone only (excludes iPad / Android); avoids WKWebView blob navigation trap. */
+function isIPhone() {
+  return /iPhone/.test(navigator.userAgent || "");
+}
+
 function DownloadIcon() {
   return (
     <svg
@@ -140,10 +145,23 @@ function IconSad() {
 
 function IconNeutral() {
   return (
-    <svg className="gallery-reactions__svg" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.75c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"
+    <svg
+      className="gallery-reactions__svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="9" cy="10" r="1.35" fill="currentColor" />
+      <circle cx="15" cy="10" r="1.35" fill="currentColor" />
+      <line
+        x1="8"
+        y1="15"
+        x2="16"
+        y2="15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -252,9 +270,33 @@ async function mergePairDownload(pair, showNotice) {
     ctx.drawImage(l, 0, 0);
     ctx.drawImage(r, l.naturalWidth, 0);
     const blob = await toBlob(c);
-    const objectUrl = URL.createObjectURL(blob);
-    triggerDirectDownload(objectUrl, buildSplitCanvasDownloadName(pair));
-    URL.revokeObjectURL(objectUrl);
+    const filename = buildSplitCanvasDownloadName(pair);
+
+    if (isIPhone()) {
+      const file = new File([blob], filename, { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: filename });
+        } catch (e) {
+          if (e?.name === "AbortError") return;
+          showNotice({
+            title: "Could not share",
+            message:
+              "Sharing this image did not complete. Try opening the gallery in Safari.",
+          });
+        }
+      } else {
+        showNotice({
+          title: "Download not available",
+          message:
+            "This view cannot open the share sheet for images. Try opening the gallery in Safari.",
+        });
+      }
+    } else {
+      const objectUrl = URL.createObjectURL(blob);
+      triggerDirectDownload(objectUrl, filename);
+      URL.revokeObjectURL(objectUrl);
+    }
   } catch {
     // Frontend-only fallback when canvas export is blocked by CORS.
     const base = splitCanvasDownloadBase(pair);

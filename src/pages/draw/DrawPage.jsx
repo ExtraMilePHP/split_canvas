@@ -17,11 +17,11 @@ import {
 import part2Img from "../../img/assets/part-2.png";
 import brushIcon from "../../img/assets/brush.png";
 import eraserIcon from "../../img/assets/eraser.png";
-import pencilIcon from "../../img/assets/pencil.png";
+import dropperIcon from "../../img/assets/dropper.png";
 import fillIcon from "../../img/assets/fill.png";
 import ColorWheel from "./ColorWheel";
-import { floodFillMask, rgbWithinTolerance } from "./floodFill";
-import { hsvToHex, hsvToRgb } from "./colorUtils";
+import { floodFillComposite, rgbDistanceSq } from "./floodFill";
+import { hsvToHex, hsvToRgb, rgbToHsv } from "./colorUtils";
 import "./drawPage.css";
 
 const SPLIT_CTX_KEY = "split_canvas_ctx_v1";
@@ -90,7 +90,6 @@ function parseSplitSets(themeData) {
   return Array.isArray(sets) ? sets : [];
 }
 const MAX_HISTORY = 50;
-const PENCIL_THICKNESS_MAX = 8;
 const BRUSH_THICKNESS_MAX = 24;
 const TARGET_CANVAS = 450;
 const MIN_CANVAS = 48;
@@ -101,14 +100,17 @@ function formatTime(totalSec) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function strokeWidthForTool(tool, pencilThickness, brushThickness) {
-  if (tool === "pencil") return pencilThickness;
+function strokeWidthForTool(tool, brushThickness) {
   if (tool === "eraser" || tool === "brush") return brushThickness;
   if (tool === "fill") return brushThickness;
   return brushThickness;
 }
 
-const FILL_COLOR_MATCH_TOL = 28;
+/** Skip fill when brush color is already very close to seed (RGB distance). */
+const FILL_SKIP_MAX_DIST = 22;
+const FILL_SKIP_DIST_SQ = FILL_SKIP_MAX_DIST * FILL_SKIP_MAX_DIST;
+/** Fixed flood-fill color distance (no UI slider). */
+const FILL_COLOR_TOLERANCE = 52;
 
 export default function DrawPage() {
   const dispatch = useDispatch();
@@ -142,7 +144,6 @@ export default function DrawPage() {
   const [tool, setTool] = useState("brush");
   const [hsv, setHsvState] = useState({ h: 0, s: 1, v: 1 });
   const { h, s, v } = hsv;
-  const [pencilThickness, setPencilThickness] = useState(3);
   const [brushThickness, setBrushThickness] = useState(8);
   const [ready, setReady] = useState(false);
   const [cursorUi, setCursorUi] = useState({ visible: false, x: 0, y: 0 });
@@ -154,12 +155,10 @@ export default function DrawPage() {
   const lastPointRef = useRef({ x: 0, y: 0 });
 
   const color = useMemo(() => hsvToHex(h, s, v), [h, s, v]);
-  const cursorIcon = useMemo(() => {
-    if (tool === "pencil") return "✎";
-    if (tool === "brush") return "🖌";
-    if (tool === "eraser") return "⌫";
-    if (tool === "fill") return "🪣";
-    return "✎";
+  const cursorToolIconSrc = useMemo(() => {
+    if (tool === "fill") return fillIcon;
+    if (tool === "eyedropper") return dropperIcon;
+    return fillIcon;
   }, [tool]);
 
   const setHsv = useCallback((next) => {
@@ -470,25 +469,15 @@ export default function DrawPage() {
       tx.drawImage(canvas, 0, 0);
       const composite = tx.getImageData(0, 0, w, ch);
 
-      const { mask, count, target } = floodFillMask(
-        composite,
-        sx,
-        sy,
-        FILL_COLOR_MATCH_TOL
-      );
+      const { mask, count, target } = floodFillComposite(composite, sx, sy, {
+        colorTolerance: FILL_COLOR_TOLERANCE,
+      });
       if (!target || count === 0) return;
 
       const { r: fr, g: fg, b: fb } = hsvToRgb(h, s, v);
       if (
-        rgbWithinTolerance(
-          fr,
-          fg,
-          fb,
-          target.r,
-          target.g,
-          target.b,
-          FILL_COLOR_MATCH_TOL
-        )
+        rgbDistanceSq(fr, fg, fb, target.r, target.g, target.b) <=
+        FILL_SKIP_DIST_SQ
       ) {
         return;
       }
@@ -509,6 +498,48 @@ export default function DrawPage() {
       commitState();
     },
     [ready, canvasCoords, h, s, v, commitState]
+  );
+
+  const sampleEyedropper = useCallback(
+    (e) => {
+      const canvas = canvasRef.current;
+      const img = imgRef.current;
+      if (!canvas || !ready) return;
+      const w = canvas.width;
+      const ch = canvas.height;
+      if (w <= 0 || ch <= 0) return;
+
+      const { x, y } = canvasCoords(e);
+      const sx = Math.max(0, Math.min(w - 1, Math.floor(x)));
+      const sy = Math.max(0, Math.min(ch - 1, Math.floor(y)));
+
+      let r;
+      let g;
+      let b;
+      if (img?.complete && img.naturalWidth) {
+        const tmp = document.createElement("canvas");
+        tmp.width = w;
+        tmp.height = ch;
+        const tx = tmp.getContext("2d");
+        if (!tx) return;
+        tx.drawImage(img, 0, 0, w, ch);
+        tx.drawImage(canvas, 0, 0);
+        const pixel = tx.getImageData(sx, sy, 1, 1).data;
+        r = pixel[0];
+        g = pixel[1];
+        b = pixel[2];
+      } else {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const pixel = ctx.getImageData(sx, sy, 1, 1).data;
+        r = pixel[0];
+        g = pixel[1];
+        b = pixel[2];
+      }
+      const picked = rgbToHsv(r, g, b);
+      setHsvState({ h: picked.h, s: picked.s, v: picked.v });
+    },
+    [ready, canvasCoords]
   );
 
   const restoreHistoryIndex = useCallback((i) => {
@@ -622,12 +653,17 @@ export default function DrawPage() {
         return;
       }
 
+      if (tool === "eyedropper") {
+        sampleEyedropper(e);
+        return;
+      }
+
       canvas.setPointerCapture(e.pointerId);
 
       drawingRef.current = true;
       lastPointRef.current = { x, y };
 
-      const w = strokeWidthForTool(tool, pencilThickness, brushThickness);
+      const w = strokeWidthForTool(tool, brushThickness);
       const ctx = canvas.getContext("2d");
       ctx.save();
       if (tool === "eraser") {
@@ -648,7 +684,7 @@ export default function DrawPage() {
       ctx.stroke();
       ctx.restore();
     },
-    [ready, tool, color, canvasCoords, pencilThickness, brushThickness, applyFill]
+    [ready, tool, color, canvasCoords, brushThickness, applyFill, sampleEyedropper]
   );
 
   const handlePointerMove = useCallback(
@@ -661,10 +697,10 @@ export default function DrawPage() {
         x,
         y,
       }));
-      if (tool === "fill") return;
+      if (tool === "fill" || tool === "eyedropper") return;
       if (!drawingRef.current || !ready) return;
       e.preventDefault();
-      const w = strokeWidthForTool(tool, pencilThickness, brushThickness);
+      const w = strokeWidthForTool(tool, brushThickness);
       const ctx = canvas.getContext("2d");
       const last = lastPointRef.current;
       ctx.save();
@@ -685,7 +721,7 @@ export default function DrawPage() {
       ctx.restore();
       lastPointRef.current = { x, y };
     },
-    [ready, tool, color, canvasCoords, pencilThickness, brushThickness]
+    [ready, tool, color, canvasCoords, brushThickness]
   );
 
   const endStroke = useCallback(() => {
@@ -732,25 +768,15 @@ export default function DrawPage() {
     [historyUi]
   );
 
-  const usePencilThicknessRange = tool === "pencil";
-  const showThicknessSlider = tool !== "fill";
-  const thicknessValue = usePencilThicknessRange
-    ? pencilThickness
-    : brushThickness;
-  const thicknessMax = usePencilThicknessRange
-    ? PENCIL_THICKNESS_MAX
-    : BRUSH_THICKNESS_MAX;
+  const showBrushThicknessSlider =
+    tool === "brush" || tool === "eraser";
+  const thicknessValue = brushThickness;
+  const thicknessMax = BRUSH_THICKNESS_MAX;
 
   const onThicknessChange = (n) => {
-    if (usePencilThicknessRange) {
-      setPencilThickness(
-        Math.min(PENCIL_THICKNESS_MAX, Math.max(1, Math.round(n)))
-      );
-    } else {
-      setBrushThickness(
-        Math.min(BRUSH_THICKNESS_MAX, Math.max(1, Math.round(n)))
-      );
-    }
+    setBrushThickness(
+      Math.min(BRUSH_THICKNESS_MAX, Math.max(1, Math.round(n)))
+    );
   };
 
   const baseImageSrc =
@@ -841,6 +867,8 @@ export default function DrawPage() {
                 <div className="draw-page__wheel-stack">
                   <ColorWheel
                     h={h}
+                    s={s}
+                    v={v}
                     onChange={setHsv}
                     size={176}
                   />
@@ -863,6 +891,7 @@ export default function DrawPage() {
                     }`}
                     aria-pressed={tool === "eraser"}
                     onClick={() => setTool("eraser")}
+                    title="Eraser"
                     aria-label="Eraser"
                   >
                     <img src={eraserIcon} alt="" />
@@ -870,13 +899,14 @@ export default function DrawPage() {
                   <button
                     type="button"
                     className={`draw-page__tool-icon${
-                      tool === "pencil" ? " draw-page__tool-icon--active" : ""
+                      tool === "eyedropper" ? " draw-page__tool-icon--active" : ""
                     }`}
-                    aria-pressed={tool === "pencil"}
-                    onClick={() => setTool("pencil")}
-                    aria-label="Pencil"
+                    aria-pressed={tool === "eyedropper"}
+                    onClick={() => setTool("eyedropper")}
+                    title="Eyedropper"
+                    aria-label="Eyedropper"
                   >
-                    <img src={pencilIcon} alt="" />
+                    <img src={dropperIcon} alt="" />
                   </button>
                   <button
                     type="button"
@@ -885,6 +915,7 @@ export default function DrawPage() {
                     }`}
                     aria-pressed={tool === "brush"}
                     onClick={() => setTool("brush")}
+                    title="Brush"
                     aria-label="Brush"
                   >
                     <img src={brushIcon} alt="" />
@@ -897,7 +928,7 @@ export default function DrawPage() {
                     aria-pressed={tool === "fill"}
                     onClick={() => setTool("fill")}
                     aria-label="Fill"
-                    title="Paint bucket"
+                    title="Fill"
                   >
                     <img src={fillIcon} alt="" />
                   </button>
@@ -905,7 +936,7 @@ export default function DrawPage() {
               </div>
             </div>
 
-            {showThicknessSlider && (
+            {showBrushThicknessSlider && (
               <div className="draw-page__thickness">
                 <span className="draw-page__thickness-label">
                   {thicknessValue}px
@@ -919,11 +950,7 @@ export default function DrawPage() {
                   onChange={(e) =>
                     onThicknessChange(Number(e.target.value))
                   }
-                  aria-label={
-                    usePencilThicknessRange
-                      ? "Pencil thickness"
-                      : "Brush and eraser thickness"
-                  }
+                  aria-label="Brush and eraser thickness"
                 />
               </div>
             )}
@@ -995,7 +1022,33 @@ export default function DrawPage() {
                 }}
                 aria-hidden="true"
               >
-                <span className="draw-page__cursor-icon">{cursorIcon}</span>
+                {tool === "brush" || tool === "eraser" ? (
+                  <div
+                    className={`draw-page__cursor-brush${
+                      tool === "eraser"
+                        ? " draw-page__cursor-brush--eraser"
+                        : " draw-page__cursor-brush--brush"
+                    }`}
+                    style={
+                      tool === "brush"
+                        ? {
+                            width: brushThickness,
+                            height: brushThickness,
+                            borderColor: color,
+                          }
+                        : {
+                            width: brushThickness,
+                            height: brushThickness,
+                          }
+                    }
+                  />
+                ) : (
+                  <img
+                    src={cursorToolIconSrc}
+                    alt=""
+                    className="draw-page__cursor-tool-img"
+                  />
+                )}
               </div>
             )}
           </div>

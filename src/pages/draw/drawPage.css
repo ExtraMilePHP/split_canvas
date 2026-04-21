@@ -301,53 +301,82 @@
 
 .draw-page__cursor-overlay {
   position: absolute;
-  transform: translate(-20%, -80%);
+  transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 5;
 }
 
-.draw-page__cursor-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 1px 4px;
+.draw-page__cursor-tool-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
+.draw-page__cursor-brush {
+  border-radius: 50%;
   box-sizing: border-box;
-  border-radius: 999px;
-  border: 1px solid rgba(92, 61, 30, 0.35);
-  background: rgba(255, 251, 243, 0.92);
-  color: #5c3d1e;
-  font-size: 13px;
-  line-height: 1;
-  box-shadow: 0 1px 6px rgba(60, 40, 20, 0.18);
+  border-width: 2px;
+  border-style: solid;
+  background: transparent;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.draw-page__cursor-brush--eraser {
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
 /* Color wheel */
 .draw-color-wheel {
   position: relative;
   border-radius: 50%;
+  overflow: hidden;
   touch-action: none;
   flex-shrink: 0;
+  cursor: crosshair;
 }
 
 .draw-color-wheel__ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  /* background: set inline in ColorWheel.jsx (white sector must match JS hit-test) */
+  background: conic-gradient(
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
   -webkit-mask: radial-gradient(
-    circle at center,
-    transparent var(--cw-mask-inner, 52px),
-    #000 var(--cw-mask-inner, 52px),
+    circle closest-side at center,
+    transparent var(--cw-ring-inner-pct, 76%),
+    #000 var(--cw-ring-inner-pct, 76%),
     #000 100%
   );
   mask: radial-gradient(
-    circle at center,
-    transparent var(--cw-mask-inner, 52px),
-    #000 var(--cw-mask-inner, 52px),
+    circle closest-side at center,
+    transparent var(--cw-ring-inner-pct, 76%),
+    #000 var(--cw-ring-inner-pct, 76%),
     #000 100%
   );
+  pointer-events: none;
+}
+
+.draw-color-wheel__inner {
+  position: absolute;
+  inset: var(--cw-inner-inset-pct, 16%);
+  border-radius: 50%;
+  background: linear-gradient(
+    to bottom,
+    #fff 0%,
+    hsl(var(--cw-hue), 100%, 50%) 50%,
+    #000 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }
 
@@ -355,8 +384,6 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  margin-left: -6px;
-  margin-top: -6px;
   border-radius: 50%;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
@@ -367,6 +394,11 @@
 .draw-color-wheel__dot--ring {
   transform: translate(-50%, -50%);
   z-index: 3;
+}
+
+.draw-color-wheel__dot--inner {
+  transform: translate(-50%, -50%);
+  z-index: 4;
 }
 
 @media (min-width: 769px) {
