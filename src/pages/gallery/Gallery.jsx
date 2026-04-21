@@ -170,10 +170,10 @@ function IconNeutral() {
 const REACTIONS = [
   { id: "like", label: "Like", Icon: IconThumbsUp },
   { id: "love", label: "Love", Icon: IconHeart },
-  { id: "laugh", label: "Laugh", Icon: IconLaugh },
-  { id: "wow", label: "Surprised", Icon: IconSurprised },
   { id: "sad", label: "Sad", Icon: IconSad },
   { id: "neutral", label: "Neutral", Icon: IconNeutral },
+  { id: "laugh", label: "Laugh", Icon: IconLaugh },
+  { id: "wow", label: "Surprised", Icon: IconSurprised },
 ];
 
 function countFor(pair, id) {

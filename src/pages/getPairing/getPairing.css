@@ -251,8 +251,37 @@
     padding: 1.25rem 1rem 2rem;
   }
 
+  .get-pairing__cards--pair-row {
+    width: 100%;
+    gap: 0.6rem;
+  }
+
   .get-pairing__card {
+    flex: 1 1 calc(50% - 0.6rem);
     max-width: none;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    border-width: 8px;
+    padding: 0.85rem 0.6rem 0.75rem;
+    justify-content: center;
+  }
+
+  .get-pairing__avatar-wrap {
+    min-height: 92px;
+    margin-bottom: 0.55rem;
+  }
+
+  .get-pairing__avatar-svg {
+    width: min(92px, 33vw);
+  }
+
+  .get-pairing__label--small {
+    font-size: clamp(0.82rem, 2.35vw, 1rem);
+  }
+
+  .get-pairing__sublabel {
+    font-size: 0.75rem;
+    margin-top: 0.22rem;
   }
 }
 
