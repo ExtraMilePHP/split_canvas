@@ -9,28 +9,13 @@ import { joinSplitCanvasPair } from "../../functions/splitCanvasApi";
 import IntroModal from "../introModal/introModal";
 import HowToPlayCard from "../rules/HowToPlayCard";
 import nextButtonAsset from "../../img/assets/next-button.png";
+import userIconAsset from "../../img/assets/user-icon.png";
 import "../rules/howToPlayCard.css";
 import "../rules/rules.css";
 import "./getPairing.css";
 
 const STORAGE_KEY = "split_canvas_ctx_v1";
 const INTRO_SESSION_KEY = "split_canvas_intro_seen";
-
-function AvatarSilhouette() {
-  return (
-    <svg
-      className="get-pairing__avatar-svg"
-      viewBox="0 0 120 140"
-      aria-hidden="true"
-    >
-      <ellipse cx="60" cy="38" rx="28" ry="30" fill="currentColor" />
-      <path
-        fill="currentColor"
-        d="M20 125c0-28 18-48 40-48s40 20 40 48v15H20v-15z"
-      />
-    </svg>
-  );
-}
 
 function parseSets(themeData) {
   let sets = themeData?.splitImageSets;
@@ -192,7 +177,12 @@ export default function GetPairing() {
       <div className="get-pairing__cards get-pairing__cards--pair-row">
         <div className="get-pairing__card">
           <div className="get-pairing__avatar-wrap">
-            <AvatarSilhouette />
+            <img
+              src={userIconAsset}
+              alt=""
+              className="get-pairing__avatar-img"
+              draggable={false}
+            />
           </div>
           <span className="get-pairing__label get-pairing__label--small">
             {loading ? "…" : leftLabel()}
@@ -201,7 +191,12 @@ export default function GetPairing() {
         </div>
         <div className="get-pairing__card">
           <div className="get-pairing__avatar-wrap">
-            <AvatarSilhouette />
+            <img
+              src={userIconAsset}
+              alt=""
+              className="get-pairing__avatar-img"
+              draggable={false}
+            />
           </div>
           <span className="get-pairing__label get-pairing__label--small">
             {loading ? "…" : rightLabel()}

@@ -227,23 +227,24 @@
   color: #f5ead4;
 }
 
-.get-pairing__avatar-svg {
+.get-pairing__avatar-img {
   width: min(140px, 45vw);
   height: auto;
+  display: block;
+  object-fit: contain;
   filter: drop-shadow(0 2px 2px rgba(60, 40, 15, 0.15));
 }
 
 .get-pairing__label {
-  
   font-family: inherit;
   font-weight: 800;
-  font-size: 16px;
-  letter-spacing: 0.03em;
-  color: #c18346;
   font-weight: bolder;
+  font-size: 19px;
+  letter-spacing: 0.03em;
+  color: #8b6914;
+  font-weight: normal;
   -webkit-text-stroke: 0.5px rgba(255, 252, 240, 0.9);
-  text-shadow: 0 0 1px rgba(255, 252, 240, 0.85),
-  1px 1px 0 rgba(255, 252, 240, 0.35);
+  text-shadow: 0 0 4px rgb(255 255 255 / 85%), 3px 3px 0 rgb(255 255 255 / 35%);
 }
 
 @media (max-width: 600px) {
@@ -271,7 +272,7 @@
     margin-bottom: 0.55rem;
   }
 
-  .get-pairing__avatar-svg {
+  .get-pairing__avatar-img {
     width: min(92px, 33vw);
   }
 
