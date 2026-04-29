@@ -875,8 +875,8 @@ export default function DrawPage() {
                   <span
                     className="draw-page__color-swatch"
                     style={{ backgroundColor: color }}
-                    title={color}
-                    aria-label={`Current brush color ${color}`}
+                    title="Shows your current color"
+                    aria-label="Shows your current color"
                   />
                 </div>
                 <div

@@ -151,8 +151,24 @@ export default function ColorWheel({ h, s, v, onChange, size = DEFAULT_SIZE }) {
       onPointerCancel={onPointerUp}
       role="presentation"
     >
-      <div className="draw-color-wheel__ring" aria-hidden="true" />
-      <div className="draw-color-wheel__inner" aria-hidden="true" />
+      <div
+        className="draw-color-wheel__ring"
+        aria-hidden="true"
+      />
+      <div
+        className="draw-color-wheel__ring-hit"
+        title="Select a base color"
+        aria-hidden="true"
+      />
+      <div
+        className="draw-color-wheel__inner"
+        aria-hidden="true"
+      />
+      <div
+        className="draw-color-wheel__inner-hit"
+        title="Adjust the shade of the selected color"
+        aria-hidden="true"
+      />
       <span
         className="draw-color-wheel__dot draw-color-wheel__dot--ring"
         style={{ left: `${ringDotX}%`, top: `${ringDotY}%` }}
