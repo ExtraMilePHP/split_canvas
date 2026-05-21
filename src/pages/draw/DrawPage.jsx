@@ -11,9 +11,13 @@ import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
 import { fetchThemeData } from "../../admin/themeSlice";
 import {
+  extractExtramileReportId,
   getSplitCanvasPair,
+  saveSplitCanvasSideReportId,
   uploadSplitCanvasDrawing,
 } from "../../functions/splitCanvasApi";
+import { sendReport } from "../../functions/sendReport";
+import { SPLIT_CANVAS_POST_POINTS } from "../../functions/splitCanvasReportPoints";
 import part2Img from "../../img/assets/part-2.png";
 import brushIcon from "../../img/assets/brush.png";
 import eraserIcon from "../../img/assets/eraser.png";
@@ -378,6 +382,40 @@ export default function DrawPage() {
       fd.append("side", splitCtx.side);
       fd.append("userId", String(user.userId));
       await uploadSplitCanvasDrawing(token, fd);
+
+      if (user.sessionId) {
+        const sideReportId =
+          splitCtx.side === "left"
+            ? splitCtx.leftReportId
+            : splitCtx.rightReportId;
+        try {
+          const reportRes = await sendReport({
+            sessionId: user.sessionId,
+            role: user.role,
+            token: user.token || null,
+            name: user.name,
+            userId: user.userId,
+            gameId: user.gameId || "",
+            organizationId: user.organizationId,
+            points: SPLIT_CANVAS_POST_POINTS,
+            time: "00:00:00",
+            reportId: sideReportId || user.reportId || null,
+            ans: "",
+          });
+          const newId = extractExtramileReportId(reportRes);
+          if (newId && splitCtx?.pairId) {
+            await saveSplitCanvasSideReportId(
+              token,
+              splitCtx.pairId,
+              splitCtx.side,
+              newId
+            );
+          }
+        } catch (reportErr) {
+          console.error("[draw] sendReport / saveReportId", reportErr);
+        }
+      }
+
       clearDrawTimer(
         drawTimerStorageKey(
           user.sessionId,

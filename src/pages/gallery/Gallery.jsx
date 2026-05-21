@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setBackButtonUrl } from "../uiSlice";
 import { selectAdminToken } from "../../admin/sessionSlice";
@@ -6,7 +6,7 @@ import {
   fetchSplitCanvasGallery,
   postSplitCanvasReaction,
 } from "../../functions/splitCanvasApi";
-import { sendReport } from "../../functions/sendReport";
+import { syncBothSplitCanvasReports } from "../../functions/splitCanvasReportSync";
 import partImg from "../../img/assets/part-2.png";
 import "./gallery.css";
 
@@ -446,38 +446,17 @@ export default function Gallery() {
     };
   }, [token, themeName, load]);
 
-  const syncReport = useCallback(
-    (pairRows) => {
-      if (!user?.sessionId || !themeName) return;
-      const payload = {
-        sessionId: user.sessionId,
-        role: user.role,
-        token: user.token || null,
-        name: user.name,
-        userId: user.userId,
-        gameId: user.gameId || "",
-        organizationId: user.organizationId,
-        points: 0,
-        time: 0,
-        reportId: user.reportId || null,
-        ans: JSON.stringify({
-          splitCanvasGallery: {
-            themeName,
-            pairs: (pairRows || []).map((p) => ({
-              id: p.id,
-              react_like: p.react_like,
-              react_love: p.react_love,
-              react_laugh: p.react_laugh,
-              react_wow: p.react_wow,
-              react_sad: p.react_sad,
-              react_neutral: p.react_neutral,
-            })),
-          },
-        }),
-      };
-      sendReport(payload).catch(() => {});
-    },
-    [user, themeName]
+  const userReportMeta = useMemo(
+    () =>
+      user
+        ? {
+            role: user.role,
+            token: user.token || "",
+            name: user.name || "",
+            gameId: user.gameId || "",
+          }
+        : null,
+    [user]
   );
 
   const onReact = async (pairId, reaction) => {
@@ -488,16 +467,14 @@ export default function Gallery() {
         token,
         pairId,
         reaction,
-        user.userId
+        user.userId,
+        userReportMeta
       );
       if (data.pair) {
-        setPairs((prev) => {
-          const next = prev.map((p) =>
-            p.id === data.pair.id ? data.pair : p
-          );
-          syncReport(next);
-          return next;
-        });
+        syncBothSplitCanvasReports(data.pair, user);
+        setPairs((prev) =>
+          prev.map((p) => (p.id === data.pair.id ? data.pair : p))
+        );
       }
     } catch (e) {
       console.warn(e);

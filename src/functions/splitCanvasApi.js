@@ -55,11 +55,55 @@ export async function fetchSplitCanvasGallery(token, themeName, userId) {
   return data;
 }
 
-export async function postSplitCanvasReaction(token, pairId, reaction, userId) {
+export function extractExtramileReportId(res) {
+  if (!res || res === true) return null;
+  const id =
+    res.reportId ??
+    res.data?.id ??
+    res.data?.reportId ??
+    res.report?.id ??
+    res.id;
+  if (id == null || id === true) return null;
+  return String(id);
+}
+
+export async function saveSplitCanvasSideReportId(token, pairId, side, reportId) {
+  const res = await fetch(`${apiBase()}/splitCanvas/saveReportId`, {
+    method: "POST",
+    headers: authHeaders(token, true),
+    body: JSON.stringify({
+      pairId,
+      side,
+      reportId: String(reportId),
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not save report id");
+  return data;
+}
+
+export async function postSplitCanvasReaction(
+  token,
+  pairId,
+  reaction,
+  userId,
+  userReportMeta = null
+) {
+  const body = {
+    pairId,
+    reaction,
+    userId: String(userId),
+  };
+  if (userReportMeta) {
+    body.role = userReportMeta.role;
+    body.userToken = userReportMeta.token || "";
+    body.name = userReportMeta.name || "";
+    body.gameId = userReportMeta.gameId || "";
+  }
   const res = await fetch(`${apiBase()}/splitCanvas/react`, {
     method: "POST",
     headers: authHeaders(token, true),
-    body: JSON.stringify({ pairId, reaction, userId: String(userId) }),
+    body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Reaction failed");
