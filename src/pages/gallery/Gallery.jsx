@@ -176,16 +176,34 @@ const REACTIONS = [
   { id: "wow", label: "Surprised", Icon: IconSurprised },
 ];
 
+const REACT_COL = {
+  like: "react_like",
+  love: "react_love",
+  laugh: "react_laugh",
+  wow: "react_wow",
+  sad: "react_sad",
+  neutral: "react_neutral",
+};
+
 function countFor(pair, id) {
-  const map = {
-    like: "react_like",
-    love: "react_love",
-    laugh: "react_laugh",
-    wow: "react_wow",
-    sad: "react_sad",
-    neutral: "react_neutral",
-  };
-  return Number(pair[map[id]] ?? 0) || 0;
+  return Number(pair[REACT_COL[id]] ?? 0) || 0;
+}
+
+/** Instant UI update before the react API returns. */
+function applyOptimisticReaction(pair, reaction) {
+  const prev = pair.my_reaction ? String(pair.my_reaction).toLowerCase() : null;
+  if (prev === reaction) return pair;
+
+  const next = { ...pair, my_reaction: reaction };
+  const col = REACT_COL[reaction];
+  const prevCol = prev ? REACT_COL[prev] : null;
+  if (col) {
+    next[col] = (Number(next[col]) || 0) + 1;
+  }
+  if (prevCol) {
+    next[prevCol] = Math.max(0, (Number(next[prevCol]) || 0) - 1);
+  }
+  return next;
 }
 
 function ReactionBarFixed({ pair, onReact, disabled }) {
@@ -319,7 +337,8 @@ async function mergePairDownload(pair, showNotice) {
   }
 }
 
-function GalleryCard({ pair, onReact, reactBusy, onShowNotice }) {
+function GalleryCard({ pair, onReact, reactBusyPairId, onShowNotice }) {
+  const reactBusy = reactBusyPairId === pair.id;
   const leftName = pair.left_user_name || "—";
   const rightName = pair.right_user_name || "—";
   const leftSrc = pair.left_s3_key
@@ -391,7 +410,7 @@ export default function Gallery() {
   const [pairs, setPairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-  const [reactBusy, setReactBusy] = useState(false);
+  const [reactBusyPairId, setReactBusyPairId] = useState(null);
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState(null);
 
@@ -459,29 +478,49 @@ export default function Gallery() {
     [user]
   );
 
-  const onReact = async (pairId, reaction) => {
-    if (!token || reactBusy || !user?.userId) return;
-    setReactBusy(true);
-    try {
-      const data = await postSplitCanvasReaction(
-        token,
-        pairId,
-        reaction,
-        user.userId,
-        userReportMeta
+  const onReact = useCallback(
+    async (pairId, reaction) => {
+      if (!token || reactBusyPairId != null || !user?.userId) return;
+
+      const current = pairs.find((p) => p.id === pairId);
+      if (!current) return;
+      const prevReaction = current.my_reaction
+        ? String(current.my_reaction).toLowerCase()
+        : null;
+      if (prevReaction === reaction) return;
+
+      setReactBusyPairId(pairId);
+      const optimistic = applyOptimisticReaction(current, reaction);
+      setPairs((prev) =>
+        prev.map((p) => (p.id === pairId ? optimistic : p))
       );
-      if (data.pair) {
-        syncBothSplitCanvasReports(data.pair, user);
-        setPairs((prev) =>
-          prev.map((p) => (p.id === data.pair.id ? data.pair : p))
+
+      try {
+        const data = await postSplitCanvasReaction(
+          token,
+          pairId,
+          reaction,
+          user.userId,
+          userReportMeta
         );
+        if (data.pair) {
+          setPairs((prev) =>
+            prev.map((p) => (p.id === pairId ? data.pair : p))
+          );
+          syncBothSplitCanvasReports(data.pair, user);
+        }
+        void load({ silent: true });
+      } catch (e) {
+        console.warn(e);
+        setPairs((prev) =>
+          prev.map((p) => (p.id === pairId ? current : p))
+        );
+      } finally {
+        setReactBusyPairId(null);
       }
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setReactBusy(false);
-    }
-  };
+    },
+    [token, reactBusyPairId, user, userReportMeta, pairs, load]
+  );
 
   const totalCount = pairs.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -536,7 +575,7 @@ export default function Gallery() {
             key={item.id}
             pair={item}
             onReact={onReact}
-            reactBusy={reactBusy}
+            reactBusyPairId={reactBusyPairId}
             onShowNotice={setNotice}
           />
         ))}
