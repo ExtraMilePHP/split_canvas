@@ -24,10 +24,18 @@ export function submittedPostCount(pair) {
   return n;
 }
 
-/** Matches backend: 10 per submitted half + 1 per reaction. */
+/** 10 once when the pair has any submission (not per side). */
+export function pairPostPoints(pair) {
+  if (pair?.left_submitted_at || pair?.right_submitted_at) {
+    return SPLIT_CANVAS_POST_POINTS;
+  }
+  return 0;
+}
+
+/** Matches backend: 10 per pair entry + 1 per reaction count. */
 export function calcSplitCanvasReportPoints(pair) {
   return (
-    submittedPostCount(pair) * SPLIT_CANVAS_POST_POINTS +
+    pairPostPoints(pair) +
     totalReactionsOnPair(pair) * SPLIT_CANVAS_REACTION_POINTS
   );
 }
