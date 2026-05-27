@@ -63,19 +63,6 @@ function Login() {
   });
 }, [status, error, user]);
 
-// show "already played" modal when status is succeeded and userPlayedCount > 0
-useEffect(() => {
-  if (isAdmin) return;
-  if (status !== "succeeded" || !user) return;
-  if (Number(user.userPlayedCount) > 0) {
-    const msg = error ? String(error) : "You have already played!";
-    const redirect = user.backButtonRedirect || "/";
-    Swal.fire("You have already played!", "  ", "error").then(() => {
-      leaveToExtramile(redirect, user);
-    });
-  }
-}, [status, user, error]);
-
   if (status === "loading" || themeStatus === "loading") {
     return (
       <div className="login-main-container">
