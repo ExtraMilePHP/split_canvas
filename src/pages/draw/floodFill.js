@@ -198,7 +198,7 @@ export function floodFillComposite(imageData, sx, sy, options = {}) {
 
   let finalCount = 0;
   for (let p = 0; p < len; p++) {
-    if (finalMask[p] && inkCore[p]) {
+    if (finalMask[p] && (inkSoft[p] || !matchFillable(p))) {
       finalMask[p] = 0;
     }
     if (finalMask[p]) finalCount++;

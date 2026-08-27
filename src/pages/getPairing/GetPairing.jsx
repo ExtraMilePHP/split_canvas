@@ -186,6 +186,9 @@ export default function GetPairing() {
           </div>
           <span className="get-pairing__label get-pairing__label--small">
             {loading ? "…" : leftLabel()}
+            {!loading && row?.side === "left" && (
+              <span className="get-pairing__you-badge"> (You)</span>
+            )}
           </span>
           <span className="get-pairing__sublabel">Left canvas</span>
         </div>
@@ -200,6 +203,9 @@ export default function GetPairing() {
           </div>
           <span className="get-pairing__label get-pairing__label--small">
             {loading ? "…" : rightLabel()}
+            {!loading && row?.side === "right" && (
+              <span className="get-pairing__you-badge"> (You)</span>
+            )}
           </span>
           <span className="get-pairing__sublabel">
             {row?.side === "left" && !row?.partnerName

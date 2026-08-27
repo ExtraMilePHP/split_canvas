@@ -247,6 +247,12 @@
   text-shadow: 0 0 4px rgb(255 255 255 / 85%), 3px 3px 0 rgb(255 255 255 / 35%);
 }
 
+.get-pairing__you-badge {
+  color: #d2691e;
+  font-weight: 900;
+  font-style: italic;
+}
+
 @media (max-width: 600px) {
   .get-pairing-page {
     padding: 1.25rem 1rem 2rem;
