@@ -138,6 +138,7 @@ export default function DrawPage() {
   const [timerInitialized, setTimerInitialized] = useState(false);
   const [baseImageRetryCount, setBaseImageRetryCount] = useState(0);
   const [baseImageLoadError, setBaseImageLoadError] = useState(false);
+  const [infoModal, setInfoModal] = useState(null);
 
   const timerEnabled = useMemo(() => {
     const t = parseInt(themeData?.wmlQuestionTimerSeconds, 10);
@@ -366,9 +367,12 @@ export default function DrawPage() {
     if (!splitCtx || !token || !user?.userId || submitting || pairBlocked)
       return;
     if (baseImageLoadError) {
-      alert(
-        "Base image failed to load from S3. Please retry after image loads."
-      );
+      setInfoModal({
+        title: "Image not loaded",
+        message:
+          "Base image failed to load from S3. Please retry after image loads.",
+        actionLabel: "OK",
+      });
       return;
     }
     if (submitOnceRef.current) return;
@@ -428,7 +432,18 @@ export default function DrawPage() {
     } catch (e) {
       console.error(e);
       submitOnceRef.current = false;
-      alert(e.message || "Save failed");
+      const message = e.message || "Save failed";
+      const alreadySubmitted = /already/i.test(message);
+      setInfoModal({
+        title: alreadySubmitted ? "Already submitted" : "Save failed",
+        message: alreadySubmitted
+          ? "You've already submitted your drawing for this pairing."
+          : message,
+        actionLabel: "OK",
+        onAction: alreadySubmitted
+          ? () => navigate("/gallery", { replace: true })
+          : null,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -1092,6 +1107,29 @@ export default function DrawPage() {
           </div>
         </div>
       </div>
+
+      {infoModal && (
+        <div className="draw-page-info-modal" role="dialog" aria-modal="true">
+          <div className="draw-page-info-modal__backdrop" aria-hidden="true" />
+          <div className="draw-page-info-modal__panel">
+            {infoModal.title && (
+              <h2 className="draw-page-info-modal__title">{infoModal.title}</h2>
+            )}
+            <p className="draw-page-info-modal__message">{infoModal.message}</p>
+            <button
+              type="button"
+              className="draw-page-info-modal__btn"
+              onClick={() => {
+                const action = infoModal.onAction;
+                setInfoModal(null);
+                if (action) action();
+              }}
+            >
+              {infoModal.actionLabel || "OK"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -521,3 +521,66 @@
     min-width: 0;
   }
 }
+
+.draw-page-info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.draw-page-info-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 20, 10, 0.55);
+}
+
+.draw-page-info-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
+  padding: 1.5rem 1.5rem 1.25rem;
+  border-radius: 16px;
+  border: 3px solid #c18346;
+  background: #fff8e8;
+  box-shadow: 0 12px 40px rgba(40, 25, 10, 0.35);
+  text-align: center;
+}
+
+.draw-page-info-modal__title {
+  margin: 0 0 0.5rem;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #5c3d1e;
+}
+
+.draw-page-info-modal__message {
+  margin: 0 0 1.1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #7a5230;
+}
+
+.draw-page-info-modal__btn {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 0.55rem 1.5rem;
+  border: none;
+  border-radius: 999px;
+  color: #fff8e8;
+  background: #c18346;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(120, 70, 20, 0.4);
+}
+
+.draw-page-info-modal__btn:hover {
+  background: #a86a34;
+}
