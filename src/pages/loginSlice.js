@@ -122,6 +122,9 @@ export const loginUser = createAsyncThunk(
       dispatch(setSession({ sessionId: userResponseData.sessionId, organizationId: userResponseData.organizationId }));
       dispatch(fetchThemeData({ themeId: null }));
 
+      // Company logo comes directly from the login response's organization object.
+      const companyLogo = userResponseData.organization?.companyLogo;
+
       // Build user data to persist
       const userData = {
         userId: userResponseData.userId || userResponseData.id,
@@ -134,32 +137,14 @@ export const loginUser = createAsyncThunk(
         source: demo ? 'DEMO' : 'ORG_USER',
         expiry: Date.now() + 24 * 60 * 60 * 1000,
         role:userResponseData.role,
-        companyLogoUrl: process.env.REACT_APP_EM_LOGO,
-        backButtonRedirect: process.env.REACT_APP_BASE_URL,
+        companyLogoUrl: isMissingOrgLogo(companyLogo) ? process.env.REACT_APP_EM_LOGO : companyLogo,
+        backButtonRedirect: demo
+          ? process.env.REACT_APP_BASE_URL
+          : `${process.env.REACT_APP_BASE_URL}/game-detail/${userResponseData.gameId}`,
         userPlayedCount:userResponseData.userPlayedCount,
         fromMobileApp: parseFromMobileAppFlag(queryParams),
       };
 
-      // Fetch organization details if not demo
-      if (!demo) {
-        const orgRes = await axios.get(
-          `${getExtramileApiOrigin()}/organization/${userResponseData.organizationId}`
-        );
-         console.log(orgRes);
-        if (orgRes.data?.message === 'ORGANIZATIONS_FETCHED_SUCCESSFULLY') {
-          console.log(orgRes.data);
-          console.log(orgRes.data?.organization?.companyLogo);
-          const companyLogo = orgRes.data?.organization?.companyLogo;
-          if (isMissingOrgLogo(companyLogo)) {
-            userData.companyLogoUrl = process.env.REACT_APP_EM_LOGO;
-          } else {
-            userData.companyLogoUrl = `${process.env.REACT_APP_S3BUCKET_URL}/${companyLogo}`;
-          }
-          userData.backButtonRedirect = `${process.env.REACT_APP_BASE_URL}/game-detail/${userResponseData.gameId}`;
-          console.log("setcompany url",userData.companyLogoUrl);
-        }
-      }
-      
       dispatch(setCompanyLogoUrl(userData.companyLogoUrl));
       localStorage.setItem('userData', JSON.stringify(userData));
       return userData;
